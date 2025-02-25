@@ -3,15 +3,15 @@ from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 import aiohttp
 import argparse
 import logging
-import asyncio
 
+import asyncio
 pcs = set()
-push_url = ""
+push_url = "http://10.176.205.11:8010/offer"
 
 async def post(url,data):
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=data) as response:
+            async with session.post(url, data=data) as response:
                 return await response.text()
     except aiohttp.ClientError as e:
         print(f'Error: {e}')
@@ -38,18 +38,22 @@ async def run(push_url, player, recorder):
     pc.on("track", on_track)
 
     pc.addTrack(player.audio)
+
+    pc.addTransceiver("audio", direction="recvonly")
+    pc.addTransceiver("video", direction="recvonly")
     # 创建 SDP Offer
     offer = await pc.createOffer()
-    print("offer:", offer)
+    
     await pc.setLocalDescription(offer)
 
     # 向 WHEP 服务端发送 SDP Offer
     sdp_data = {
-        "sdp": offer,
+        "sdp": pc.localDescription.sdp,
         "type": "offer"
     }
+    print("offer:", sdp_data)
     response = await post(push_url, sdp_data)
-    print("answer:", answer)
+    print("answer:", response)
     answer = RTCSessionDescription(sdp=response["sdp"], type=response["type"])
     await pc.setRemoteDescription(answer)
 
@@ -104,7 +108,8 @@ if __name__ == "__main__":
     if args.push_url:
         push_url = args.push_url
 
-    loop = asyncio.get_event_loop(run(
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(run(
         push_url,
         player=player,
         recorder=recorder

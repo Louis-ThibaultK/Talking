@@ -103,7 +103,8 @@ async def offer(request):
         if track.kind == "audio":
             player.SetReceiver(track)
 
-
+    pc.addTransceiver("audio", direction="recvonly")
+    
     audio_sender = pc.addTrack(player.audio)
     video_sender = pc.addTrack(player.video)
     capabilities = RTCRtpSender.getCapabilities("video")
@@ -114,9 +115,11 @@ async def offer(request):
     transceiver.setCodecPreferences(preferences)
 
     await pc.setRemoteDescription(offer)
+    print("offer:", offer)
 
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
+    print("answer", answer)
 
     #return jsonify({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
 
