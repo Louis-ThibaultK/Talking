@@ -71,6 +71,7 @@ def build_nerfreal(sessionid):
 async def offer(request):
     params = await request.json()
     offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    print("offer:", offer)
 
     if len(nerfreals) >= opt.max_session:
         print('reach max session')
@@ -97,14 +98,20 @@ async def offer(request):
             del nerfreals[sessionid]
 
     #拉取音频流
-    @pc.on("track")
-    def on_track(track):
+    async def on_track(track):
         print("Track %s received", track.kind)
         if track.kind == "audio":
-            player.SetReceiver(track)
+            while True:
+                frame = await track.recv()
+                # 这里可以处理音频数据，例如进行转换、保存等
+                print(f"Received audio frame with timestamp {frame.time}")
+                pcm_frame = nerfreal.asr.convert(frame)
+                nerfreal.asr.put_stream(pcm_frame)
+
+    pc.on("track", on_track)
 
     pc.addTransceiver("audio", direction="recvonly")
-    
+
     audio_sender = pc.addTrack(player.audio)
     video_sender = pc.addTrack(player.video)
     capabilities = RTCRtpSender.getCapabilities("video")
@@ -115,7 +122,7 @@ async def offer(request):
     transceiver.setCodecPreferences(preferences)
 
     await pc.setRemoteDescription(offer)
-    print("offer:", offer)
+   
 
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)

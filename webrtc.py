@@ -148,27 +148,6 @@ class PlayerStreamTrack(MediaStreamTrack):
             self._player = None
 
 
-
-class AudioStreamTrack(MediaStreamTrack):
-    """
-    自定义的音频流类，从音频流中读取并保存音频数据。
-    """
-    def __init__(self, track, kind, nerfreal):
-        super().__init__()
-        self._kind = kind
-        self._track = track
-        self._queue = []
-        self._nerfreal = nerfreal
-
-    async def recv(self):
-        frame = await self._track.recv()
-        # 这里可以处理音频数据，例如进行转换、保存等
-        print(f"Received audio frame with timestamp {frame.time}")
-        pcm_frame = self._nerfreal.asr.convert(frame)
-        self._nerfreal.asr.put_stream(pcm_frame)
-        return frame
-
-
 def player_worker_thread(
     quit_event,
     loop,
@@ -178,35 +157,6 @@ def player_worker_thread(
 ):
     container.render(quit_event,loop,audio_track,video_track)
 
-
-class AudioBuffer:
-    """
-    将接收到的音频数据保存到缓冲区。
-    """
-    def __init__(self):
-        self.buffer = bytearray()
-        self.num_channels = None
-        self.sample_rate = None
-        self.sample_width = None
-
-    def write(self, data, num_channels, sample_rate, sample_width):
-        if self.num_channels is None:
-            self.num_channels = num_channels
-        if self.sample_rate is None:
-            self.sample_rate = sample_rate
-        if self.sample_width is None:
-            self.sample_width = sample_width
-
-        self.buffer.extend(data)
-
-    def get_data(self):
-        return self.buffer
-    
-    def clear_buffer(self):
-        """清理 buffer 内容"""
-        self.buffer = bytearray()
-    
-    
 
 class HumanPlayer:
 
@@ -223,7 +173,6 @@ class HumanPlayer:
 
         self.__audio = PlayerStreamTrack(self, kind="audio")
         self.__video = PlayerStreamTrack(self, kind="video")
-        self._receiver = AudioStreamTrack(self, kind="audio") 
 
         self.__container = nerfreal
 
@@ -235,9 +184,6 @@ class HumanPlayer:
         """
         return self.__audio
     
-    @property
-    def SetReceiver(self, track) :
-        self._receiver = AudioStreamTrack(self, track=track, kind="audio", nerfreal = self.__container) 
 
     @property
     def video(self) -> MediaStreamTrack:

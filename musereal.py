@@ -210,8 +210,6 @@ class MuseReal(BaseReal):
     def __init__(self, opt, model, avatar):
         super().__init__(opt)
         #self.opt = opt # shared with the trainer's opt to support in-place modification of rendering parameters.
-        self.W = opt.W
-        self.H = opt.H
 
         self.fps = opt.fps # 20 ms per frame
 
