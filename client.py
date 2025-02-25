@@ -16,7 +16,7 @@ async def post(url,data):
     except aiohttp.ClientError as e:
         print(f'Error: {e}')
 
-async def run(player, recorder):
+async def run(push_url, player, recorder):
     pc = RTCPeerConnection()
     pcs.add(pc)
     @pc.on("connectionstatechange")
@@ -105,6 +105,7 @@ if __name__ == "__main__":
         push_url = args.push_url
 
     loop = asyncio.get_event_loop(run(
+        push_url,
         player=player,
         recorder=recorder
     ))

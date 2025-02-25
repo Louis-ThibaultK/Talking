@@ -35,8 +35,6 @@ import soundfile as sf
 import av
 from fractions import Fraction
 
-from ttsreal import EdgeTTS,VoitsTTS,XTTS,CosyVoiceTTS
-
 from tqdm import tqdm
 def read_imgs(img_list):
     frames = []
@@ -52,15 +50,6 @@ class BaseReal:
         self.sample_rate = 16000
         self.chunk = self.sample_rate // opt.fps # 320 samples per chunk (20ms * 16000 / 1000)
         self.sessionid = self.opt.sessionid
-
-        if opt.tts == "edgetts":
-            self.tts = EdgeTTS(opt,self)
-        elif opt.tts == "gpt-sovits":
-            self.tts = VoitsTTS(opt,self)
-        elif opt.tts == "xtts":
-            self.tts = XTTS(opt,self)
-        elif opt.tts == "cosyvoice":
-            self.tts = CosyVoiceTTS(opt,self)
         
         self.speaking = False
 
@@ -77,9 +66,6 @@ class BaseReal:
         self.custom_opt = {}
         self.__loadcustom()
 
-    def put_msg_txt(self,msg):
-        self.tts.put_msg_txt(msg)
-    
     def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
         self.asr.put_audio_frame(audio_chunk)
 
@@ -110,7 +96,6 @@ class BaseReal:
         return stream
 
     def flush_talk(self):
-        self.tts.flush_talk()
         self.asr.flush_talk()
 
     def is_speaking(self)->bool:
