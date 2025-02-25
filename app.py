@@ -16,18 +16,11 @@
 ###############################################################################
 
 # server.py
-import queue
-import wave
 from flask import Flask, render_template,send_from_directory,request, jsonify
-from flask_sockets import Sockets
-import base64
-import time
 import json
 #import gevent
 #from gevent import pywsgi
 #from geventwebsocket.handler import WebSocketHandler
-import os
-import re
 import numpy as np
 from threading import Thread,Event
 #import multiprocessing
@@ -39,15 +32,12 @@ import aiohttp_cors
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.rtcrtpsender import RTCRtpSender
 from webrtc import HumanPlayer
-from webrtc import AudioBuffer
 
 import argparse
 import random
 
-import shutil
 import asyncio
 import torch
-import requests
 
 
 app = Flask(__name__)
