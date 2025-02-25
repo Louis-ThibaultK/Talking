@@ -12,7 +12,7 @@ async def post(url,data):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=data) as response:
-                return await response.text()
+                return await response.json()
     except aiohttp.ClientError as e:
         print(f'Error: {e}')
 
@@ -37,7 +37,9 @@ async def run(push_url, player, recorder):
 
     pc.on("track", on_track)
 
-    pc.addTrack(player.audio)
+    #推流
+    audio_transceiver = pc.addTransceiver(kind="audio", direction="sendonly")
+    audio_transceiver.sender.track = player.audio
 
     pc.addTransceiver("audio", direction="recvonly")
     pc.addTransceiver("video", direction="recvonly")
@@ -108,8 +110,7 @@ if __name__ == "__main__":
     if args.push_url:
         push_url = args.push_url
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(run(
+    asyncio.run(run(
         push_url,
         player=player,
         recorder=recorder
