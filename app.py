@@ -97,6 +97,14 @@ async def offer(request):
             pcs.discard(pc)
             del nerfreals[sessionid]
 
+    @pc.on("iceconnectionstatechange")
+    async def on_iceconnectionstatechange():
+        print(f"ICE connection state is {pc.iceConnectionState}")
+        if pc.iceConnectionState == "failed":
+            print("ICE connection failed.")
+        elif pc.iceConnectionState == "disconnected":
+            print("ICE connection disconnected.")
+
     #拉取音频流
     async def on_track(track):
         print("Track received", track.kind, track.id)

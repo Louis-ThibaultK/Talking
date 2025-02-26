@@ -95,12 +95,14 @@ class BaseASR:
         pcm_data = self.decode_opus_to_pcm(frame)
         return pcm_data
     
-    def decode_opus_to_pcm(self, opus_data):
-        # 创建 Opus 解码器，假设采样率为 16kHz，单声道
-        decoder = opuslib.Decoder(16000, 2)
+    def decode_opus_to_pcm(self, frame):
+
+        opus_data = frame.payload
+        # # 创建 Opus 解码器，假设采样率为 16kHz，单声道
+        decoder = opuslib.Decoder(48000, 2)
 
         # 解码 Opus 数据
-        pcm_samples = decoder.decode(opus_data, len(opus_data) * 2)  # 解码为 PCM 样本
+        pcm_samples = decoder.decode(opus_data, frame.samples)  # 解码为 PCM 样本
 
         # 转换为字节流并返回
         pcm_data = BytesIO(pcm_samples.tobytes())  # 将解码后的样本转为字节流
