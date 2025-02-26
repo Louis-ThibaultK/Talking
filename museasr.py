@@ -29,6 +29,7 @@ class MuseASR(BaseASR):
     def __init__(self, opt, parent,audio_processor:Audio2Feature):
         super().__init__(opt,parent)
         self.audio_processor = audio_processor
+        self.audio_buffer = []
 
     def run_step(self):
         ############################################## extract audio feature ##############################################
@@ -55,11 +56,13 @@ class MuseASR(BaseASR):
 
     def put_stream(self,audio_stream, sample_rate):
         if audio_stream is not None and len(audio_stream)>0: 
-                     
-            stream = self.create_bytes_stream(byte_stream=audio_stream)
-            # streamlen = stream.shape[0]
-            # idx=0
-            # while streamlen >= self.chunk:
-            self.put_audio_frame(stream)
-                # streamlen -= self.chunk
-                # idx += self.chunk 
+            self.audio_buffer.append(audio_stream)
+            if len(self.audio_buffer) >= 10:
+                merged_audio = np.concatenate(self.audio_buffer, axis=0)
+                stream = self.create_bytes_stream(merged_audio, sample_rate)
+                streamlen = stream.shape[0]
+                idx=0
+                while streamlen >= self.chunk:
+                        self.parent.put_audio_frame(stream[idx:idx+self.chunk])
+                        streamlen -= self.chunk
+                        idx += self.chunk 
