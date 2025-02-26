@@ -17,15 +17,26 @@ async def post(url,data):
         print(f'Error: {e}')
 
 async def run(push_url, player, recorder):
-    pc = RTCPeerConnection()
-    pcs.add(pc)
-    @pc.on("connectionstatechange")
+    push_pc = RTCPeerConnection()
+    pull_pc = RTCPeerConnection() 
+    pcs.add(push_pc)
+    pcs.add(pull_pc)
+
+    @push_pc.on("connectionstatechange")
     async def on_connectionstatechange():
 
-        print("pull Connection state is %s" % pc.connectionState)
-        if pc.connectionState == "failed":
-            await pc.close()
-            pcs.discard(pc)
+        print("push Connection state is %s" % push_pc.connectionState)
+        if push_pc.connectionState == "failed":
+            await push_pc.close()
+            pcs.discard(push_pc)
+
+    @pull_pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+
+        print("pull Connection state is %s" % pull_pc.connectionState)
+        if pull_pc.connectionState == "failed":
+            await pull_pc.close()
+            pcs.discard(pull_pc)
      
     async def on_track(track):
         if track.kind == "audio":
@@ -35,29 +46,40 @@ async def run(push_url, player, recorder):
             print("Video track received")
         recorder.addTrack(track)
 
-    pc.on("track", on_track)
+    pull_pc.on("track", on_track)
 
     #推流
-    audio_transceiver = pc.addTransceiver(player.audio, direction="sendonly")
+    audio_transceiver = push_pc.addTransceiver(player.audio, direction="sendonly")
 
     #拉流
-    # pc.addTransceiver("audio", direction="recvonly")
-    # pc.addTransceiver("video", direction="recvonly")
+    pull_pc.addTransceiver("audio", direction="recvonly")
+    pull_pc.addTransceiver("video", direction="recvonly")
     # 创建 SDP Offer
-    offer = await pc.createOffer()
+    push_offer = await push_pc.createOffer()
     
-    await pc.setLocalDescription(offer)
+    await push_pc.setLocalDescription(push_offer)
+
+    pull_offer = await pull_pc.createOffer()
+
+    await pull_pc.setLocalDescription(pull_offer)
 
     # 向 WHEP 服务端发送 SDP Offer
     sdp_data = {
-        "sdp": pc.localDescription.sdp,
+        "push_sdp": push_pc.localDescription.sdp,
+        "pull_sdp": pull_pc.localDescription.sdp,
         "type": "offer"
     }
-    print("offer:", sdp_data)
+    print("push offer:", push_offer)
+    print("pull offer:", pull_offer)
     response = await post(push_url, sdp_data)
-    print("answer:", response)
-    answer = RTCSessionDescription(sdp=response["sdp"], type=response["type"])
-    await pc.setRemoteDescription(answer)
+    
+    push_answer = RTCSessionDescription(sdp=response["push_sdp"], type=response["type"])
+    await push_pc.setRemoteDescription(push_answer)
+
+    pull_answer = RTCSessionDescription(sdp=response["pull_sdp"], type=response["type"])
+    await pull_pc.setRemoteDescription(pull_answer)
+    print("push answer:", push_answer)
+    print("pull answer:", pull_answer)
 
 def add_signaling_arguments(parser):
     """

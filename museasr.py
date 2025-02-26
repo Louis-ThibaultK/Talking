@@ -66,3 +66,5 @@ class MuseASR(BaseASR):
                         self.parent.put_audio_frame(stream[idx:idx+self.chunk])
                         streamlen -= self.chunk
                         idx += self.chunk 
+                        
+                self.audio_buffer.clear()

@@ -70,8 +70,10 @@ def build_nerfreal(sessionid):
 #@app.route('/offer', methods=['POST'])
 async def offer(request):
     params = await request.json()
-    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
-    print("offer:", offer)
+    push_offer = RTCSessionDescription(sdp=params["push_sdp"], type=params["type"])
+    print("push offer:", push_offer)
+    pull_offer = RTCSessionDescription(sdp=params["pull_sdp"], type=params["type"]) 
+    print("pull offer:", pull_offer)
 
     if len(nerfreals) >= opt.max_session:
         print('reach max session')
@@ -82,27 +84,46 @@ async def offer(request):
     nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
     nerfreals[sessionid] = nerfreal
     
-    pc = RTCPeerConnection()
-    pcs.add(pc)
+    push_pc = RTCPeerConnection()
+    pull_pc = RTCPeerConnection() 
+    pcs.add(push_pc)
+    pcs.add(pull_pc)
     player = HumanPlayer(nerfreals[sessionid])
 
-    @pc.on("connectionstatechange")
+    @push_pc.on("connectionstatechange")
     async def on_connectionstatechange():
-        print("Connection state is %s" % pc.connectionState)
-        if pc.connectionState == "failed":
-            await pc.close()
-            pcs.discard(pc)
+        print("push connection state is %s" % push_pc.connectionState)
+        if push_pc.connectionState == "failed":
+            await push_pc.close()
+            pcs.discard(push_pc)
             del nerfreals[sessionid]
-        if pc.connectionState == "closed":
-            pcs.discard(pc)
+        if push_pc.connectionState == "closed":
+            pcs.discard(push_pc)
             del nerfreals[sessionid]
 
-    @pc.on("iceconnectionstatechange")
+    @pull_pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        print("pull connection state is %s" % pull_pc.connectionState)
+        if pull_pc.connectionState == "failed":
+            await pull_pc.close()
+            pcs.discard(pull_pc)
+        if pull_pc.connectionState == "closed":
+            pcs.discard(pull_pc)
+
+    @push_pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        print(f"ICE connection state is {pc.iceConnectionState}")
-        if pc.iceConnectionState == "failed":
+        print(f"push ICE connection state is {push_pc.iceConnectionState}")
+        if push_pc.iceConnectionState == "failed":
             print("ICE connection failed.")
-        elif pc.iceConnectionState == "disconnected":
+        elif push_pc.iceConnectionState == "disconnected":
+            print("ICE connection disconnected.")
+    
+    @pull_pc.on("iceconnectionstatechange")
+    async def on_iceconnectionstatechange():
+        print(f"push ICE connection state is {pull_pc.iceConnectionState}")
+        if pull_pc.iceConnectionState == "failed":
+            print("ICE connection failed.")
+        elif pull_pc.iceConnectionState == "disconnected":
             print("ICE connection disconnected.")
 
     #拉取音频流
@@ -112,38 +133,45 @@ async def offer(request):
             while True:
                 frame = await track.recv()
                 # 这里可以处理音频数据，例如进行转换、保存等
-                print(f"Received audio frame with timestamp {frame.time}")
+                # print(f"Received audio frame with timestamp {frame.time}")
                 pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
                 nerfreal.asr.put_stream(pcm_frame, sample_rate)
 
-    pc.on("track", on_track)
+    pull_pc.on("track", on_track)
     
     #拉流
-    pc.addTransceiver("audio", direction="recvonly")
+    pull_pc.addTransceiver("audio", direction="recvonly")
     #推流
-    # audio_transceiver = pc.addTransceiver(player.audio, direction="sendonly")
-    # video_transceiver = pc.addTransceiver(player.video, direction="sendonly")
+    audio_transceiver = push_pc.addTransceiver(player.audio, direction="sendonly")
+    video_transceiver = push_pc.addTransceiver(player.video, direction="sendonly")
 
-    # capabilities = RTCRtpSender.getCapabilities("video")
-    # preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
-    # preferences += list(filter(lambda x: x.name == "VP8", capabilities.codecs))
-    # preferences += list(filter(lambda x: x.name == "rtx", capabilities.codecs))
-    # transceiver = pc.getTransceivers()[2]
-    # transceiver.setCodecPreferences(preferences)
+    capabilities = RTCRtpSender.getCapabilities("video")
+    preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
+    preferences += list(filter(lambda x: x.name == "VP8", capabilities.codecs))
+    preferences += list(filter(lambda x: x.name == "rtx", capabilities.codecs))
+    transceiver = push_pc.getTransceivers()[1]
+    transceiver.setCodecPreferences(preferences)
 
-    await pc.setRemoteDescription(offer)
+    await push_pc.setRemoteDescription(push_offer)
+
+    await pull_pc.setRemoteDescription(pull_offer)
    
 
-    answer = await pc.createAnswer()
-    await pc.setLocalDescription(answer)
-    print("answer", answer)
+    push_answer = await push_pc.createAnswer()
+    await push_pc.setLocalDescription(push_answer)
+    print("push answer", push_answer)
+
+    pull_answer = await pull_pc.createAnswer()
+    await pull_pc.setLocalDescription(pull_answer)
+    print("pull answer", pull_answer)
 
     #return jsonify({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
 
     return web.Response(
         content_type="application/json",
         text=json.dumps(
-            {"sdp": pc.localDescription.sdp, "type": pc.localDescription.type, "sessionid":sessionid}
+            {"push_sdp": push_pc.localDescription.sdp, "pull_sdp": pull_pc.localDescription.sdp,
+             "type": push_pc.localDescription.type, "sessionid":sessionid}
         ),
     )
 
