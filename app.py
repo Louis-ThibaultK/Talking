@@ -99,7 +99,7 @@ async def offer(request):
 
     #拉取音频流
     async def on_track(track):
-        print("Track received", track.kind)
+        print("Track received", track.kind, track.id)
         if track.kind == "audio":
             while True:
                 frame = await track.recv()
@@ -112,19 +112,16 @@ async def offer(request):
     
     #拉流
     pc.addTransceiver("audio", direction="recvonly")
-
     #推流
-    audio_transceiver = pc.addTransceiver(kind="audio", direction="sendonly")
-    audio_transceiver.sender.track = player.audio
-    video_transceiver = pc.addTransceiver(kind="video", direction="sendonly")
-    video_transceiver.sender.track = player.video
+    # audio_transceiver = pc.addTransceiver(player.audio, direction="sendonly")
+    # video_transceiver = pc.addTransceiver(player.video, direction="sendonly")
 
-    capabilities = RTCRtpSender.getCapabilities("video")
-    preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
-    preferences += list(filter(lambda x: x.name == "VP8", capabilities.codecs))
-    preferences += list(filter(lambda x: x.name == "rtx", capabilities.codecs))
-    transceiver = pc.getTransceivers()[2]
-    transceiver.setCodecPreferences(preferences)
+    # capabilities = RTCRtpSender.getCapabilities("video")
+    # preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
+    # preferences += list(filter(lambda x: x.name == "VP8", capabilities.codecs))
+    # preferences += list(filter(lambda x: x.name == "rtx", capabilities.codecs))
+    # transceiver = pc.getTransceivers()[2]
+    # transceiver.setCodecPreferences(preferences)
 
     await pc.setRemoteDescription(offer)
    

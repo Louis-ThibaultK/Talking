@@ -38,11 +38,11 @@ async def run(push_url, player, recorder):
     pc.on("track", on_track)
 
     #推流
-    audio_transceiver = pc.addTransceiver(kind="audio", direction="sendonly")
-    audio_transceiver.sender.track = player.audio
+    audio_transceiver = pc.addTransceiver(player.audio, direction="sendonly")
 
-    pc.addTransceiver("audio", direction="recvonly")
-    pc.addTransceiver("video", direction="recvonly")
+    #拉流
+    # pc.addTransceiver("audio", direction="recvonly")
+    # pc.addTransceiver("video", direction="recvonly")
     # 创建 SDP Offer
     offer = await pc.createOffer()
     
