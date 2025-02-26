@@ -78,22 +78,6 @@ class BaseReal:
             self.put_audio_frame(stream[idx:idx+self.chunk])
             streamlen -= self.chunk
             idx += self.chunk
-    
-    def __create_bytes_stream(self,byte_stream):
-        #byte_stream=BytesIO(buffer)
-        stream, sample_rate = sf.read(byte_stream) # [T*sample_rate,] float64
-        print(f'[INFO]put audio stream {sample_rate}: {stream.shape}')
-        stream = stream.astype(np.float32)
-
-        if stream.ndim > 1:
-            print(f'[WARN] audio has {stream.shape[1]} channels, only use the first.')
-            stream = stream[:, 0]
-    
-        if sample_rate != self.sample_rate and stream.shape[0]>0:
-            print(f'[WARN] audio sample rate is {sample_rate}, resampling into {self.sample_rate}.')
-            stream = resampy.resample(x=stream, sr_orig=sample_rate, sr_new=self.sample_rate)
-
-        return stream
 
     def flush_talk(self):
         self.asr.flush_talk()

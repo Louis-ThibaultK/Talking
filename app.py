@@ -113,8 +113,8 @@ async def offer(request):
                 frame = await track.recv()
                 # 这里可以处理音频数据，例如进行转换、保存等
                 print(f"Received audio frame with timestamp {frame.time}")
-                pcm_frame = nerfreal.asr.convert(frame)
-                nerfreal.asr.put_stream(pcm_frame)
+                pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
+                nerfreal.asr.put_stream(pcm_frame, sample_rate)
 
     pc.on("track", on_track)
     

@@ -89,28 +89,18 @@ class BaseASR:
     def get_next_feat(self,block,timeout):        
         return self.feat_queue.get(block,timeout)
     
-    def convert(self, frame):
-
-        # 解码为 PCM 数据
-        pcm_data = self.decode_opus_to_pcm(frame)
-        return pcm_data
-    
     def decode_opus_to_pcm(self, frame):
 
-        opus_data = frame.payload
-        # # 创建 Opus 解码器，假设采样率为 16kHz，单声道
-        decoder = opuslib.Decoder(48000, 2)
+        audio_data = frame.to_ndarray()
 
-        # 解码 Opus 数据
-        pcm_samples = decoder.decode(opus_data, frame.samples)  # 解码为 PCM 样本
+        print("audio_data:", audio_data.shape, frame.sample_rate)
 
-        # 转换为字节流并返回
-        pcm_data = BytesIO(pcm_samples.tobytes())  # 将解码后的样本转为字节流
-        return pcm_data
+        return audio_data, frame.sample_rate
     
-    def __create_bytes_stream(self,byte_stream):
+    def create_bytes_stream(self, stream, sample_rate):
         #byte_stream=BytesIO(buffer)
-        stream, sample_rate = sf.read(byte_stream) # [T*sample_rate,] float64
+        #必须wav格式
+        # stream, sample_rate = sf.read(byte_stream) # [T*sample_rate,] float64
         print(f'[INFO]put audio stream {sample_rate}: {stream.shape}')
         stream = stream.astype(np.float32)
 

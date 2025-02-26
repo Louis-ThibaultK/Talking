@@ -53,12 +53,10 @@ class MuseASR(BaseASR):
         # discard the old part to save memory
         self.frames = self.frames[-(self.stride_left_size + self.stride_right_size):]
 
-    def put_stream(self,audio_stream):
-        if audio_stream is not None and len(audio_stream)>0:          
-            #stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
-            #stream = resampy.resample(x=stream, sr_orig=32000, sr_new=self.sample_rate)
-            byte_stream=BytesIO(audio_stream)
-            stream = self.__create_bytes_stream(byte_stream)
+    def put_stream(self,audio_stream, sample_rate):
+        if audio_stream is not None and len(audio_stream)>0: 
+                     
+            stream = self.create_bytes_stream(byte_stream=audio_stream)
             # streamlen = stream.shape[0]
             # idx=0
             # while streamlen >= self.chunk:
