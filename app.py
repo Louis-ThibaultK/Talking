@@ -188,16 +188,13 @@ def frame_to_bytes(frame):
         return frame.to_ndarray().tobytes()
 
 # 异步发送数据
-async def stream_pcm(frames, url):
+async def stream_pcm(frames):
     # 将 frame 数据转换为字节流
-    data_combine = bytearray()
     for video_frame, audio_frame in frames:
         video_data = frame_to_bytes(video_frame)
         audio_data = frame_to_bytes(audio_frame)
         data = video_data + audio_data
-        data_combine.extend(data)
-
-    return data_combine
+        yield data
 
 @app.route('/start', methods=['POST'])
 async def start(request):
@@ -213,7 +210,7 @@ async def start(request):
     player = HumanPlayer(nerfreals[0], loop=loop)
     player._start(player.audio)
     player._start(player.video)
-    
+
     return "Start successfully", 200 
 
 @app.route('/humanaudio', methods=['POST'])
@@ -232,7 +229,7 @@ async def humanaudio():
     response = await stream_pcm(frames)
     frames.clear()
        
-    return web.Response(body=response, content_type='application/octet-stream')
+    return web.Response(response, content_type='application/octet-stream')
 
 
 async def on_shutdown(app):
