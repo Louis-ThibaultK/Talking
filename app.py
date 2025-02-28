@@ -210,26 +210,31 @@ async def stream_pcm(frames, url):
 async def start(request):
     params = await request.json()
     url = params['url']
-    global player, nerfreals
+    global nerfreals
     if nerfreals.get(0) is None:
         sessionid = 0
         nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
         nerfreals[sessionid] = nerfreal
-    
-    loop = asyncio.get_event_loop()
-    
-    player = HumanPlayer(nerfreals[0], loop=loop)
-    player._start(player.audio)
-    player._start(player.video)
 
-    frames = []
-    while True:
-        audio_frame = await player.audio._queue.get()
-        video_frame = await player.video._queue.get()
-        frames.append((audio_frame, video_frame))
-        if len(frames) >= 10:
-            await stream_pcm(frames, url)
-            frames.clear()
+    def receive_stream():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        global player
+        player = HumanPlayer(nerfreals[0], loop=loop)
+        player._start(player.audio)
+        player._start(player.video)
+        frames = []
+        while True:
+            audio_frame = player.audio._queue.get()
+            video_frame = player.video._queue.get()
+            frames.append((audio_frame, video_frame))
+            if len(frames) >= 10:
+                stream_pcm(frames, url)
+                frames.clear()
+
+    rendthrd = Thread(target=receive_stream, args=())
+    rendthrd.start()
+    return "Start successfully", 200 
     
 
 @app.route('/humanaudio', methods=['POST'])
