@@ -201,8 +201,7 @@ async def stream_pcm(frames, url):
 
 @app.route('/start', methods=['POST'])
 async def start(request):
-    params = await request.json()
-    url = params['url']
+
     global player, nerfreals
     if nerfreals.get(0) is None:
         sessionid = 0
@@ -215,6 +214,7 @@ async def start(request):
     player._start(player.audio)
     player._start(player.video)
     
+    return "Start successfully", 200 
 
 @app.route('/humanaudio', methods=['POST'])
 async def humanaudio():
@@ -231,9 +231,8 @@ async def humanaudio():
 
     response = await stream_pcm(frames)
     frames.clear()
-     
+       
     return web.Response(body=response, content_type='application/octet-stream')
-
 
 
 async def on_shutdown(app):
