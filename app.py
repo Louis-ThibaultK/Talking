@@ -16,6 +16,7 @@
 ###############################################################################
 
 # server.py
+import io
 from flask import Flask, render_template,send_from_directory,request, jsonify
 import json
 #import gevent
@@ -39,7 +40,8 @@ import random
 
 import asyncio
 import torch
-
+import wave
+import struct
 
 app = Flask(__name__)
 #sockets = Sockets(app)
@@ -216,33 +218,71 @@ async def start(request):
         nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
         nerfreals[sessionid] = nerfreal
 
-    def receive_stream():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    async def fetch_stream():
         global player
         player = HumanPlayer(nerfreals[0], loop=loop)
         player._start(player.audio)
         player._start(player.video)
         frames = []
         while True:
-            audio_frame = player.audio._queue.get()
-            video_frame = player.video._queue.get()
+            audio_frame = await player.audio._queue.get()
+            video_frame = await player.video._queue.get()
             frames.append((audio_frame, video_frame))
             if len(frames) >= 10:
-                stream_pcm(frames, url)
-                frames.clear()
+                await stream_pcm(frames, url)
+                frames.clear()    
+
+    def receive_stream():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(fetch_stream())
+        loop.run_forever()    
 
     rendthrd = Thread(target=receive_stream, args=())
     rendthrd.start()
     return "Start successfully", 200 
     
+def create_wav(frequency=440.0, duration=2, sample_rate=44100):
+    """
+    创建一个简单的 WAV 文件，生成一个指定频率的正弦波。
+
+    :param filename: 输出的 WAV 文件名
+    :param frequency: 音频的频率（默认为 440 Hz，A4 音符）
+    :param duration: 音频的持续时间（默认为 2 秒）
+    :param sample_rate: 采样率（默认为 44100 Hz）
+    """
+    # 计算样本数量
+    num_samples = int(sample_rate * duration)
+
+    # 创建时间数组
+    t = np.linspace(0, duration, num_samples, endpoint=False)
+
+    # 生成正弦波样本
+    samples = np.sin(2 * np.pi * frequency * t)
+
+    # 将浮动样本转换为整数（16位 PCM 编码）
+    byte_data = b''.join([struct.pack('<h', int(sample * 32767)) for sample in samples])
+    wav_in_memory = io.BytesIO()
+
+    # 创建 .wav 文件并写入数据
+    with wave.open(wav_in_memory, 'wb') as wf:
+        # 设置文件参数
+        wf.setnchannels(1)  # 单声道
+        wf.setsampwidth(2)  # 16位深度
+        wf.setframerate(sample_rate)  # 采样率
+        wf.writeframes(byte_data)
+
+    # 返回内存中的 WAV 数据
+    wav_in_memory.seek(0)  # 重置文件指针，以便之后读取
+    return wav_in_memory
+
 
 @app.route('/humanaudio', methods=['POST'])
 async def humanaudio():
     global player
     loop = player.get_loop()
-
-    frame_count = asyncio.run_coroutine_threadsafe(nerfreals[0].asr.stream_tts(request.stream) , loop) 
+    wav = create_wav()
+    frame_count = asyncio.run_coroutine_threadsafe(nerfreals[0].asr.stream_tts(wav) , loop) 
     return "Start successfully", 200 
     
 
