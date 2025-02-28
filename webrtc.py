@@ -173,6 +173,7 @@ class HumanPlayer:
 
         self.__audio = PlayerStreamTrack(self, kind="audio")
         self.__video = PlayerStreamTrack(self, kind="video")
+        self._loop = loop
 
         self.__container = nerfreal
 
@@ -184,6 +185,8 @@ class HumanPlayer:
         """
         return self.__audio
     
+    def get_loop(self):
+        return self._loop
 
     @property
     def video(self) -> MediaStreamTrack:

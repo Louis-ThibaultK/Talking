@@ -31,7 +31,8 @@ import aiohttp
 import aiohttp_cors
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.rtcrtpsender import RTCRtpSender
-from webrtc import HumanPlayer
+from webrtc import HumanPlayer, PlayerStreamTrack
+from av import AudioFrame, VideoFrame
 
 import argparse
 import random
@@ -48,7 +49,7 @@ model = None
 avatar = None
 status = False
 message_queue = None
-loop= None
+player = None
       
 
 #####webrtc###############################
@@ -70,15 +71,17 @@ def build_nerfreal(sessionid):
 #@app.route('/offer', methods=['POST'])
 async def offer(request):
     params = await request.json()
-    push_offer = RTCSessionDescription(sdp=params["push_sdp"], type=params["type"])
-    print("push offer:", push_offer)
-    pull_offer = RTCSessionDescription(sdp=params["pull_sdp"], type=params["type"]) 
+    pull_offer = RTCSessionDescription(sdp=params["push_sdp"], type=params["type"])
     print("pull offer:", pull_offer)
+    push_offer = RTCSessionDescription(sdp=params["pull_sdp"], type=params["type"]) 
+    print("push offer:", push_offer)
 
     if len(nerfreals) >= opt.max_session:
         print('reach max session')
         return -1
+    
     sessionid = randN(6) #len(nerfreals)
+    sessionid = 0
     print('sessionid=',sessionid)
     nerfreals[sessionid] = None
     nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
@@ -175,112 +178,69 @@ async def offer(request):
         ),
     )
 
-async def human(request):
+# 将 VideoFrame 和 AudioFrame 转换为字节流
+def frame_to_bytes(frame):
+    if isinstance(frame, VideoFrame):
+        # 对于 VideoFrame，提取 NumPy 数组并转化为字节流
+        return frame.to_ndarray(format="bgr24").tobytes()
+    elif isinstance(frame, AudioFrame):
+        # 对于 AudioFrame，直接提取 PCM 数据并转化为字节流
+        return frame.to_ndarray().tobytes()
+
+# 异步发送数据
+async def stream_pcm(frames, url):
+    # 将 frame 数据转换为字节流
+    
+    async with aiohttp.ClientSession() as session:
+        video_combine = bytearray()
+        audio_combine = bytearray()
+        for video_frame, audio_frame in frames:
+            video_data = frame_to_bytes(video_frame)
+            video_combine.extend(video_data)
+            audio_data = frame_to_bytes(audio_frame)
+            audio_combine.extend(audio_data)
+
+        async with session.post(url + "/video", data=video_combine) as response:
+            print(f"Server response: {response.status}")
+            
+        async with session.post(url + "/audio", data=audio_combine) as response:
+            print(f"Audio response status: {response.status}")
+
+@app.route('/start', methods=['POST'])
+async def start(request):
     params = await request.json()
+    url = params['url']
+    global player, nerfreals
+    if nerfreals.get(0) is None:
+        sessionid = 0
+        nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
+        nerfreals[sessionid] = nerfreal
+    
+    loop = asyncio.get_event_loop()
+    
+    player = HumanPlayer(nerfreals[0], loop=loop)
+    player._start(player.audio)
+    player._start(player.video)
+    frames = []
+    while True:
+        audio_frame = await player.audio._queue.get()
+        video_frame = await player.video._queue.get()
+        frames.append((audio_frame, video_frame))
+        if len(frames) >= 10:
+            await stream_pcm(frames, url)
+            frames.clear()
+            
+    
 
-    sessionid = params.get('sessionid',0)
-    if params.get('interrupt'):
-        nerfreals[sessionid].flush_talk()
+@app.route('/humanaudio', methods=['POST'])
+async def humanaudio():
+    global player
+    loop = player.get_loop()
+    for chunk in request.stream:
+        asyncio.run_coroutine_threadsafe(nerfreals[0].asr.put_stream(chunk, 24000) , loop) 
+        
+    return "Audio received successfully", 200
 
-    if params['type']=='echo':
-        nerfreals[sessionid].put_msg_txt(params['text'])
-    elif params['type']=='chat':
-        res=await asyncio.get_event_loop().run_in_executor(None, llm_response, params['text'],nerfreals[sessionid])                         
-        #nerfreals[sessionid].put_msg_txt(res)
-
-    return web.Response(
-        content_type="application/json",
-        text=json.dumps(
-            {"code": 0, "data":"ok"}
-        ),
-    )
-async def Speaking(request): 
-    params = await request.json()
-    global status, message_queue, loop
-    sessionid = params.get('sessionid',0)
-    if params.get('interrupt'):
-        nerfreals[sessionid].flush_talk()
-    if params['status'] == 'start':
-        status = True
-    else:
-        status = False
-        if params['type']=='echo':
-            asyncio.run_coroutine_threadsafe(message_queue.put("echo"), loop)
-            # message_queue.put("echo")
-        elif params['type'] == 'chat':
-            asyncio.run_coroutine_threadsafe(message_queue.put("chat"), loop)
-            # message_queue.put('chat')
-
-    return web.Response(
-        content_type="application/json",
-        text=json.dumps(
-            {"code": 0, "data":"ok"}
-        ),
-    ) 
-
-
-async def humanaudio(request):
-    try:
-        form= await request.post()
-        sessionid = int(form.get('sessionid',0))
-        fileobj = form["file"]
-        filename=fileobj.filename
-        filebytes=fileobj.file.read()
-        nerfreals[sessionid].put_audio_file(filebytes)
-
-        return web.Response(
-            content_type="application/json",
-            text=json.dumps(
-                {"code": 0, "msg":"ok"}
-            ),
-        )
-    except Exception as e:
-        return web.Response(
-            content_type="application/json",
-            text=json.dumps(
-                {"code": -1, "msg":"err","data": ""+e.args[0]+""}
-            ),
-        )
-
-async def set_audiotype(request):
-    params = await request.json()
-
-    sessionid = params.get('sessionid',0)    
-    nerfreals[sessionid].set_curr_state(params['audiotype'],params['reinit'])
-
-    return web.Response(
-        content_type="application/json",
-        text=json.dumps(
-            {"code": 0, "data":"ok"}
-        ),
-    )
-
-async def record(request):
-    params = await request.json()
-
-    sessionid = params.get('sessionid',0)
-    if params['type']=='start_record':
-        # nerfreals[sessionid].put_msg_txt(params['text'])
-        nerfreals[sessionid].start_recording()
-    elif params['type']=='end_record':
-        nerfreals[sessionid].stop_recording()
-    return web.Response(
-        content_type="application/json",
-        text=json.dumps(
-            {"code": 0, "data":"ok"}
-        ),
-    )
-
-async def is_speaking(request):
-    params = await request.json()
-
-    sessionid = params.get('sessionid',0)
-    return web.Response(
-        content_type="application/json",
-        text=json.dumps(
-            {"code": 0, "data": nerfreals[sessionid].is_speaking()}
-        ),
-    )
 
 
 async def on_shutdown(app):
@@ -477,11 +437,8 @@ if __name__ == '__main__':
     appasync = web.Application()
     appasync.on_shutdown.append(on_shutdown)
     appasync.router.add_post("/offer", offer)
-    appasync.router.add_post("/human", human)
+    appasync.router.add_post("/start", start)
     appasync.router.add_post("/humanaudio", humanaudio)
-    appasync.router.add_post("/set_audiotype", set_audiotype)
-    appasync.router.add_post("/record", record)
-    appasync.router.add_post("/is_speaking", Speaking)
     appasync.router.add_static('/',path='web')
 
     # Configure default CORS settings.

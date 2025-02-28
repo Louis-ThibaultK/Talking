@@ -396,7 +396,6 @@ class MuseReal(BaseReal):
         #if self.opt.asr:
         #     self.asr.warm_up()
 
-        self.tts.render(quit_event)
         self.init_customindex()
         process_thread = Thread(target=self.process_frames, args=(quit_event,loop,audio_track,video_track))
         process_thread.start()

@@ -59,6 +59,7 @@ class MuseASR(BaseASR):
             self.audio_buffer.append(audio_stream)
             if len(self.audio_buffer) >= 10:
                 merged_audio = np.concatenate(self.audio_buffer, axis=0)
+                merged_audio = merged_audio.flatten()
                 stream = self.create_bytes_stream(merged_audio, sample_rate)
                 streamlen = stream.shape[0]
                 idx=0
@@ -66,5 +67,5 @@ class MuseASR(BaseASR):
                         self.parent.put_audio_frame(stream[idx:idx+self.chunk])
                         streamlen -= self.chunk
                         idx += self.chunk 
-                        
+
                 self.audio_buffer.clear()

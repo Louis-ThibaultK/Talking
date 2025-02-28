@@ -93,7 +93,7 @@ class BaseASR:
 
         audio_data = frame.to_ndarray()
 
-        print("audio_data:", audio_data.shape, frame.sample_rate)
+        # print("audio_data:", audio_data.shape, frame.sample_rate)
 
         return audio_data, frame.sample_rate
     
