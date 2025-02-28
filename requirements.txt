@@ -30,8 +30,6 @@ transformers
 flask
 flask_sockets
 opencv-python-headless
-aiortc
-aiohttp_cors
 
 ffmpeg-python
 omegaconf
@@ -41,3 +39,6 @@ accelerate
 librosa
 httpx~=0.27.2
 opuslib
+
+aiortc
+aiohttp_cors

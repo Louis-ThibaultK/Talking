@@ -54,7 +54,7 @@ class MuseASR(BaseASR):
         # discard the old part to save memory
         self.frames = self.frames[-(self.stride_left_size + self.stride_right_size):]
 
-    def put_stream(self,audio_stream, sample_rate):
+    def put_frame(self,audio_stream, sample_rate):
         if audio_stream is not None and len(audio_stream)>0: 
             self.audio_buffer.append(audio_stream)
             if len(self.audio_buffer) >= 10:
@@ -69,3 +69,20 @@ class MuseASR(BaseASR):
                         idx += self.chunk 
 
                 self.audio_buffer.clear()
+    
+    def stream_tts(self,audio_stream):
+        chunk_count = 0
+        for chunk in audio_stream:
+            if chunk is not None and len(chunk)>0:          
+                #stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
+                #stream = resampy.resample(x=stream, sr_orig=32000, sr_new=self.sample_rate)
+                byte_stream=BytesIO(chunk)
+                stream = self.create_bytes_stream(byte_stream)
+                streamlen = stream.shape[0]
+                idx=0
+                while streamlen >= self.chunk:
+                    self.parent.put_audio_frame(stream[idx:idx+self.chunk])
+                    streamlen -= self.chunk
+                    idx += self.chunk 
+                    self.chunk_count += 1
+        return chunk_count

@@ -168,6 +168,16 @@ if __name__ == "__main__":
     
     if args.push_url:
         push_url = args.push_url
+    
+    #from av.frame import Frame
+    #from av.packet import Packet
+    #循环放入这两种格式的pcm包
+    audio._queue.put(Packet())
+
+    # 获取输出音视频数据
+    #格式为 from av import AudioFrame, VideoFrame
+    stream_buffer.audio_buffer.get()
+    stream_buffer.video_buffer.get()
 
     # asyncio.run(run(
     #     push_url,
