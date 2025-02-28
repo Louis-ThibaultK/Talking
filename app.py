@@ -188,17 +188,28 @@ def frame_to_bytes(frame):
         return frame.to_ndarray().tobytes()
 
 # 异步发送数据
-async def stream_pcm(frames):
+async def stream_pcm(frames, url):
     # 将 frame 数据转换为字节流
-    for video_frame, audio_frame in frames:
-        video_data = frame_to_bytes(video_frame)
-        audio_data = frame_to_bytes(audio_frame)
-        data = video_data + audio_data
-        yield data
+    
+    async with aiohttp.ClientSession() as session:
+        video_combine = bytearray()
+        audio_combine = bytearray()
+        for video_frame, audio_frame in frames:
+            video_data = frame_to_bytes(video_frame)
+            video_combine.extend(video_data)
+            audio_data = frame_to_bytes(audio_frame)
+            audio_combine.extend(audio_data)
+
+        async with session.post(url + "/video", data=video_combine) as response:
+            print(f"Server response: {response.status}")
+            
+        async with session.post(url + "/audio", data=audio_combine) as response:
+            print(f"Audio response status: {response.status}")
 
 @app.route('/start', methods=['POST'])
 async def start(request):
-
+    params = await request.json()
+    url = params['url']
     global player, nerfreals
     if nerfreals.get(0) is None:
         sessionid = 0
@@ -211,7 +222,15 @@ async def start(request):
     player._start(player.audio)
     player._start(player.video)
 
-    return "Start successfully", 200 
+    frames = []
+    while True:
+        audio_frame = await player.audio._queue.get()
+        video_frame = await player.video._queue.get()
+        frames.append((audio_frame, video_frame))
+        if len(frames) >= 10:
+            await stream_pcm(frames, url)
+            frames.clear()
+    
 
 @app.route('/humanaudio', methods=['POST'])
 async def humanaudio():
@@ -219,18 +238,8 @@ async def humanaudio():
     loop = player.get_loop()
 
     frame_count = asyncio.run_coroutine_threadsafe(nerfreals[0].asr.stream_tts(request.stream) , loop) 
+    return "Start successfully", 200 
     
-    frames = []
-    for i in range(1, frame_count + 1):
-        audio_frame = await player.audio._queue.get()
-        video_frame = await player.video._queue.get()
-        frames.append((audio_frame, video_frame))
-
-    response = await stream_pcm(frames)
-    frames.clear()
-       
-    return web.Response(response, content_type='application/octet-stream')
-
 
 async def on_shutdown(app):
     # close peer connections

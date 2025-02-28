@@ -42,3 +42,4 @@ opuslib
 
 aiortc
 aiohttp_cors
+av
