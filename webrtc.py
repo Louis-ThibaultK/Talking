@@ -67,6 +67,15 @@ class AudioBuffer:
 
     def get_data(self):
         return self.buffer
+    
+async def save_audio_to_file(frames, filename):
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(frames.num_channels)  # Mono
+        wf.setsampwidth(frames.sample_width)  # 16-bit PCM
+        wf.setframerate(frames.sample_rate)  # Sample rate
+        # for frame in frames:
+        wf.writeframes(frames.get_data())
+        print(f"Saved {len(frames.get_data())} audio frames to {filename}.")
 class PlayerStreamTrack(MediaStreamTrack):
     """
     A video track that returns an animated flag.
@@ -82,6 +91,8 @@ class PlayerStreamTrack(MediaStreamTrack):
             self.framecount = 0
             self.lasttime = time.perf_counter()
             self.totaltime = 0
+        else:
+            self.buffer = AudioBuffer()
     
     _start: float
     _timestamp: int
@@ -146,6 +157,9 @@ class PlayerStreamTrack(MediaStreamTrack):
         #     else:
         #         frame = await self._queue.get()
         frame = await self._queue.get()
+        if frame.kind == 'audio':
+            data = frame.to_ndarray().tobytes()
+            self.buffer.write(data, len(frame.layout.channels), frame.sample_rate, 2)
         pts, time_base = await self.next_timestamp()
         frame.pts = pts
         frame.time_base = time_base
@@ -164,6 +178,8 @@ class PlayerStreamTrack(MediaStreamTrack):
     
     def stop(self):
         super().stop()
+        print("save push wav")
+        save_audio_to_file(self.buffer, "push.wav") 
         if self._player is not None:
             self._player._stop(self)
             self._player = None
