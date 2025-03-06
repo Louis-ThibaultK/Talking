@@ -145,21 +145,24 @@ async def offer(request):
     async def on_track(track):
         print("Track received", track.kind, track.id)
         if track.kind == "audio":
-            while True:
-                frame = await track.recv()
-                audio_data = frame.to_ndarray()  # �~N��~O~V NumPy �~U��~D
-                # print("track status:", status, len(frame.layout.channels), frame.sample_rate)
-                audio_buffer.write(
-                    audio_data.tobytes(),
-                    len(frame.layout.channels),   # �~N帧对象�~O~P�~O~V�~@~Z�~A~S�~U�
-                    frame.sample_rate,  # �~N帧对象�~O~P�~O~V�~G~G�| ��~N~G
-                    2  # �~A~G设 16-bit�~L�~O个�~G~G�| �宽度为 2 �~W�~J~B
-                )
-                # 这里可以处理音频数据，例如进行转换、保存等
-                # print(f"Received audio frame with timestamp {frame.time}")
-                pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
-                nerfreal.asr.put_frame(pcm_frame, sample_rate)
-        await save_audio_to_file(audio_buffer, "output.wav")
+            try:
+                while True:
+                    frame = await track.recv()
+                    audio_data = frame.to_ndarray()  # �~N��~O~V NumPy �~U��~D
+                    # print("track status:", status, len(frame.layout.channels), frame.sample_rate)
+                    audio_buffer.write(
+                        audio_data.tobytes(),
+                        len(frame.layout.channels),   # �~N帧对象�~O~P�~O~V�~@~Z�~A~S�~U�
+                        frame.sample_rate,  # �~N帧对象�~O~P�~O~V�~G~G�| ��~N~G
+                        2  # �~A~G设 16-bit�~L�~O个�~G~G�| �宽度为 2 �~W�~J~B
+                    )
+                    # 这里可以处理音频数据，例如进行转换、保存等
+                    # print(f"Received audio frame with timestamp {frame.time}")
+                    pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
+                    nerfreal.asr.put_frame(pcm_frame, sample_rate)
+            except Exception as e:
+                print(f"Error in on_track: {e}")
+                await save_audio_to_file(audio_buffer, "output.wav")
 
     pull_pc.on("track", on_track)
     
