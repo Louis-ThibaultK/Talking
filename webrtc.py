@@ -68,7 +68,7 @@ class AudioBuffer:
     def get_data(self):
         return self.buffer
     
-async def save_audio_to_file(frames, filename):
+def save_audio_to_file(frames, filename):
     with wave.open(filename, 'wb') as wf:
         wf.setnchannels(frames.num_channels)  # Mono
         wf.setsampwidth(frames.sample_width)  # 16-bit PCM
@@ -159,7 +159,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         frame = await self._queue.get()
         if frame.kind == 'audio':
             data = frame.to_ndarray().tobytes()
-            self.buffer.write(data, len(frame.layout.channels), frame.sample_rate, 2)
+            self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
         frame.pts = pts
         frame.time_base = time_base
@@ -177,9 +177,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         return frame
     
     def stop(self):
-        super().stop()
-        print("save push wav")
-        save_audio_to_file(self.buffer, "push.wav") 
+        super().stop() 
         if self._player is not None:
             self._player._stop(self)
             self._player = None
@@ -251,6 +249,8 @@ class HumanPlayer:
             self.__thread.start()
 
     def _stop(self, track: PlayerStreamTrack) -> None:
+        print("save push wav")
+        save_audio_to_file(self.__audio.buffer, "push.wav")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:

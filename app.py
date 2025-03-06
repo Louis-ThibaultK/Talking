@@ -122,6 +122,7 @@ async def offer(request):
             await pull_pc.close()
             pcs.discard(pull_pc)
         if pull_pc.connectionState == "closed":
+            player._stop(player.audio)
             pcs.discard(pull_pc)
 
     @push_pc.on("iceconnectionstatechange")
