@@ -32,7 +32,7 @@ import aiohttp
 import aiohttp_cors
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.rtcrtpsender import RTCRtpSender
-from webrtc import HumanPlayer, PlayerStreamTrack
+from webrtc import HumanPlayer, AudioBuffer
 from av import AudioFrame, VideoFrame
 
 import argparse
@@ -69,6 +69,15 @@ def build_nerfreal(sessionid):
         from musereal import MuseReal
         nerfreal = MuseReal(opt,model,avatar)
     return nerfreal
+
+async def save_audio_to_file(frames, filename):
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(frames.num_channels)  # Mono
+        wf.setsampwidth(frames.sample_width)  # 16-bit PCM
+        wf.setframerate(frames.sample_rate)  # Sample rate
+        # for frame in frames:
+        wf.writeframes(frames.get_data())
+        print(f"Saved {len(frames.get_data())} audio frames to {filename}.")
 
 #@app.route('/offer', methods=['POST'])
 async def offer(request):
@@ -131,16 +140,26 @@ async def offer(request):
         elif pull_pc.iceConnectionState == "disconnected":
             print("ICE connection disconnected.")
 
+    audio_buffer = AudioBuffer()
     #拉取音频流
     async def on_track(track):
         print("Track received", track.kind, track.id)
         if track.kind == "audio":
             while True:
                 frame = await track.recv()
+                audio_data = frame.to_ndarray()  # �~N��~O~V NumPy �~U��~D
+                # print("track status:", status, len(frame.layout.channels), frame.sample_rate)
+                audio_buffer.write(
+                    audio_data.tobytes(),
+                    len(frame.layout.channels),   # �~N帧对象�~O~P�~O~V�~@~Z�~A~S�~U�
+                    frame.sample_rate,  # �~N帧对象�~O~P�~O~V�~G~G�| ��~N~G
+                    2  # �~A~G设 16-bit�~L�~O个�~G~G�| �宽度为 2 �~W�~J~B
+                )
                 # 这里可以处理音频数据，例如进行转换、保存等
                 # print(f"Received audio frame with timestamp {frame.time}")
                 pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
                 nerfreal.asr.put_frame(pcm_frame, sample_rate)
+        await save_audio_to_file(audio_buffer, "output.wav")
 
     pull_pc.on("track", on_track)
     
