@@ -150,7 +150,7 @@ async def offer(request):
                 while True:
                     frame = await track.recv()
                     audio_data = frame.to_ndarray()  # �~N��~O~V NumPy �~U��~D
-                    # print("track status:", status, len(frame.layout.channels), frame.sample_rate)
+                    # print("track status:", frame.layout, frame.sample_rate)
                     audio_buffer.write(
                         audio_data.tobytes(),
                         len(frame.layout.channels),   # �~N帧对象�~O~P�~O~V�~@~Z�~A~S�~U�
@@ -159,7 +159,7 @@ async def offer(request):
                     )
                     # 这里可以处理音频数据，例如进行转换、保存等
                     # print(f"Received audio frame with timestamp {frame.time}")
-                    pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
+                    pcm_frame, sample_rate = nerfreal.asr.channel_switch(frame)
                     nerfreal.asr.put_frame(pcm_frame, sample_rate)
             except Exception as e:
                 print(f"Error in on_track: {e}")

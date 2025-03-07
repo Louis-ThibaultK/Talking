@@ -89,10 +89,16 @@ class BaseASR:
     def get_next_feat(self,block,timeout):        
         return self.feat_queue.get(block,timeout)
     
-    def decode_opus_to_pcm(self, frame):
+    def channel_switch(self, frame):
 
         audio_data = frame.to_ndarray()
 
+        if audio_data.shape[0] == 1 and frame.layout == "stereo":
+            audio_data = audio_data.reshape(2, -1)
+        
+        if audio_data.shape[0] == 2:
+            # 将 2 通道数据求平均，合并为 1 个通道（Mono）
+            audio_data = np.mean(audio_data, axis=0)
         # print("audio_data:", audio_data.shape, frame.sample_rate)
 
         return audio_data, frame.sample_rate
