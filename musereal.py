@@ -225,6 +225,7 @@ class MuseReal(BaseReal):
         self.asr.warm_up()
         
         self.render_event = mp.Event()
+        self.count = 0
 
     def __del__(self):
         print(f'musereal({self.sessionid}) delete')
@@ -378,10 +379,14 @@ class MuseReal(BaseReal):
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             #self.recordq_video.put(new_frame)  
-
+            
             for audio_frame in audio_frames:
                 frame,type = audio_frame
-                frame = (frame * 32767).astype(np.int16)
+                if self.count == 100:
+                    print("output frame shape:", frame.shape, "frame sum", np.sum(frame), "frame integer", frame.astype(np.int16))
+                    self.count = 0
+                self.count += 1
+                frame = frame.astype(np.int16)
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())
                 new_frame.sample_rate=16000
@@ -390,6 +395,7 @@ class MuseReal(BaseReal):
                 asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
                 self.record_audio_data(frame)
                 #self.recordq_audio.put(new_frame)
+
         print('musereal process_frames thread stop') 
             
     def render(self,quit_event,loop=None,audio_track=None,video_track=None):

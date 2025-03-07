@@ -64,11 +64,11 @@ class MuseASR(BaseASR):
                 streamlen = stream.shape[0]
                 idx=0
                 if idx == 0:
-                    print("audio pcm stream:", audio_stream, "merged_audio shape:", merged_audio.shape, "stream :", stream)
+                    print("audio pcm stream shape:", audio_stream.shape, "merged_audio shape:", merged_audio.shape, "stream :", stream)
                 while streamlen >= self.chunk:
-                        self.parent.put_audio_frame(stream[idx:idx+self.chunk])
+                        self.put_audio_frame(stream[idx:idx+self.chunk])
                         streamlen -= self.chunk
-                        idx += self.chunk 
+                        idx += self.chunk
 
                 self.audio_buffer.clear()
     

@@ -72,7 +72,7 @@ def build_nerfreal(sessionid):
 
 async def save_audio_to_file(frames, filename):
     with wave.open(filename, 'wb') as wf:
-        wf.setnchannels(frames.num_channels)  # Mono
+        wf.setnchannels(frames.num_channels)  
         wf.setsampwidth(frames.sample_width)  # 16-bit PCM
         wf.setframerate(frames.sample_rate)  # Sample rate
         # for frame in frames:
@@ -290,7 +290,7 @@ def create_wav(frequency=440.0, duration=2, sample_rate=44100):
     # 创建 .wav 文件并写入数据
     with wave.open(wav_in_memory, 'wb') as wf:
         # 设置文件参数
-        wf.setnchannels(1)  # 单声道
+        wf.setnchannels(2)  # 单声道
         wf.setsampwidth(2)  # 16位深度
         wf.setframerate(sample_rate)  # 采样率
         wf.writeframes(byte_data)
