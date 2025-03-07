@@ -92,15 +92,13 @@ class BaseASR:
     def channel_switch(self, frame):
 
         audio_data = frame.to_ndarray()
-        print("old audio data:", audio_data[0][0], audio_data[0][1], audio_data[0][2], audio_data[0][3])
         if audio_data.shape[0] == 1 and len(frame.layout.channels) == 2:
-            audio_data[0] = audio_data[0][0::2]
-            audio_data[1] = audio_data[0][1::2]
-        print("new audio data:", audio_data[0][0], audio_data[1][0], audio_data[0][1], audio_data[1][1])
+            left_channel = audio_data[0][0::2]
+            right_channel = audio_data[0][1::2]
+            audio_data = np.stack([left_channel, right_channel], axis=0)
         if audio_data.shape[0] == 2:
             # 将 2 通道数据求平均，合并为 1 个通道（Mono）
             audio_data = np.mean(audio_data, axis=0)
-        print("audio_data:", audio_data.shape, frame.sample_rate)
 
         return audio_data, frame.sample_rate
     

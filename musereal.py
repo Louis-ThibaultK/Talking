@@ -225,7 +225,6 @@ class MuseReal(BaseReal):
         self.asr.warm_up()
         
         self.render_event = mp.Event()
-        self.count = 0
 
     def __del__(self):
         print(f'musereal({self.sessionid}) delete')
@@ -382,10 +381,6 @@ class MuseReal(BaseReal):
             
             for audio_frame in audio_frames:
                 frame,type = audio_frame
-                if self.count == 100:
-                    print("output frame shape:", frame.shape, "frame sum", np.sum(frame), "frame integer", frame.astype(np.int16))
-                    self.count = 0
-                self.count += 1
                 frame = frame.astype(np.int16)
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())

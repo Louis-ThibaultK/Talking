@@ -249,8 +249,9 @@ class HumanPlayer:
             self.__thread.start()
 
     def _stop(self, track: PlayerStreamTrack) -> None:
-        print("save push wav")
-        save_audio_to_file(self.__audio.buffer, "push.wav")
+        if track == self.__audio:
+            print("save push wav")
+            save_audio_to_file(self.__audio.buffer, "push.wav")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:
