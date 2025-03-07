@@ -83,9 +83,9 @@ async def save_audio_to_file(frames, filename):
 async def offer(request):
     params = await request.json()
     pull_offer = RTCSessionDescription(sdp=params["push_sdp"], type=params["type"])
-    print("pull offer:", pull_offer)
+    # print("pull offer:", pull_offer)
     push_offer = RTCSessionDescription(sdp=params["pull_sdp"], type=params["type"]) 
-    print("push offer:", push_offer)
+    # print("push offer:", push_offer)
 
     if len(nerfreals) >= opt.max_session:
         print('reach max session')
@@ -187,11 +187,11 @@ async def offer(request):
 
     push_answer = await push_pc.createAnswer()
     await push_pc.setLocalDescription(push_answer)
-    print("push answer", push_answer)
+    # print("push answer", push_answer)
 
     pull_answer = await pull_pc.createAnswer()
     await pull_pc.setLocalDescription(pull_answer)
-    print("pull answer", pull_answer)
+    # print("pull answer", pull_answer)
 
     #return jsonify({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
 
