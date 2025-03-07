@@ -145,6 +145,7 @@ def inference(render_event,batch_size,input_latent_list_cycle,audio_feat_queue,a
         starttime=time.perf_counter()
         try:
             whisper_chunks = audio_feat_queue.get(block=True, timeout=1)
+            print("whisper chunks not is empty")
         except queue.Empty:
             print("whisper chunks is empty")
             continue
@@ -331,6 +332,7 @@ class MuseReal(BaseReal):
         while not quit_event.is_set():
             try:
                 res_frame,idx,audio_frames = self.res_frame_queue.get(block=True, timeout=1)
+                print("video and audio queue is not empty")
             except queue.Empty:
                 print("video and audio queue is empty")
                 continue
