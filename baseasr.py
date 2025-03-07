@@ -94,7 +94,8 @@ class BaseASR:
         audio_data = frame.to_ndarray()
         print("old audio data:", audio_data[0][0], audio_data[0][1], audio_data[0][2], audio_data[0][3])
         if audio_data.shape[0] == 1 and len(frame.layout.channels) == 2:
-            audio_data = audio_data.reshape(2, -1)
+            audio_data[0] = audio_data[0][0::2]
+            audio_data[1] = audio_data[0][1::2]
         print("new audio data:", audio_data[0][0], audio_data[1][0], audio_data[0][1], audio_data[1][1])
         if audio_data.shape[0] == 2:
             # 将 2 通道数据求平均，合并为 1 个通道（Mono）
