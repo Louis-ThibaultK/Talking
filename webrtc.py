@@ -55,7 +55,7 @@ class AudioBuffer:
         self.sample_rate = None
         self.sample_width = None
 
-    def write(self, data, num_channels, sample_rate, sample_width):
+    async def write(self, data, num_channels, sample_rate, sample_width):
         if self.num_channels is None:
             self.num_channels = num_channels
         if self.sample_rate is None:
@@ -159,7 +159,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         frame = await self._queue.get()
         if self.kind == 'audio':
             data = frame.to_ndarray().tobytes()
-            self.buffer.write(data, 1, 16000, 2)
+            await self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
         frame.pts = pts
         frame.time_base = time_base

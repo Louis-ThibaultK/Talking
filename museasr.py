@@ -19,7 +19,7 @@ from io import BytesIO
 import time
 import numpy as np
 
-import queue
+import queue, asyncio
 from queue import Queue
 #import multiprocessing as mp
 from baseasr import BaseASR
@@ -30,6 +30,7 @@ class MuseASR(BaseASR):
         super().__init__(opt,parent)
         self.audio_processor = audio_processor
         self.audio_buffer = []
+        self.buffer_lock = asyncio.Lock()  # 线程安全
 
     def run_step(self):
         ############################################## extract audio feature ##############################################
@@ -54,21 +55,26 @@ class MuseASR(BaseASR):
         # discard the old part to save memory
         self.frames = self.frames[-(self.stride_left_size + self.stride_right_size):]
 
-    def put_frame(self,audio_stream, sample_rate):
-        if audio_stream is not None and len(audio_stream)>0: 
-            self.audio_buffer.append(audio_stream)
-            if len(self.audio_buffer) >= 10:
-                merged_audio = np.concatenate(self.audio_buffer, axis=0)
+    async def put_frame(self,audio_stream, sample_rate):
+        if audio_stream is not None and len(audio_stream)>0:
+            merged_audio = None
+            async with self.buffer_lock: 
+                self.audio_buffer.append(audio_stream)
+                if len(self.audio_buffer) >= 10:
+                    merged_audio = np.concatenate(self.audio_buffer, axis=0)
+                    self.audio_buffer.clear()
+                    
+            if merged_audio is not None:
                 merged_audio = merged_audio.flatten()
                 stream = self.create_bytes_stream(merged_audio, sample_rate)
                 streamlen = stream.shape[0]
                 idx=0
                 while streamlen >= self.chunk:
-                        self.put_audio_frame(stream[idx:idx+self.chunk])
-                        streamlen -= self.chunk
-                        idx += self.chunk
+                    self.put_audio_frame(stream[idx:idx+self.chunk])
+                    streamlen -= self.chunk
+                    idx += self.chunk
 
-                self.audio_buffer.clear()
+                
     
     def stream_tts(self,audio_stream):
         chunk_count = 0
