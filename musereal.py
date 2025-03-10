@@ -379,7 +379,7 @@ class MuseReal(BaseReal):
 
             image = combine_frame #(outputs['image'] * 255).astype(np.uint8)
             new_frame = VideoFrame.from_ndarray(image, format="bgr24")
-            print("send video frame", "frame length :", image.shape)
+            print("send video frame", "frame length :", image.shape, "audio frames sum:", len(audio_frames))
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             #self.recordq_video.put(new_frame)  

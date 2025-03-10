@@ -157,9 +157,9 @@ class PlayerStreamTrack(MediaStreamTrack):
         #     else:
         #         frame = await self._queue.get()
         frame = await self._queue.get()
-        if self.kind == 'audio':
-            data = frame.to_ndarray().tobytes()
-            await self.buffer.write(data, 1, 16000, 2)
+        # if self.kind == 'audio':
+        #     data = frame.to_ndarray().tobytes()
+        #     await self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
         frame.pts = pts
         frame.time_base = time_base
@@ -249,9 +249,9 @@ class HumanPlayer:
             self.__thread.start()
 
     def _stop(self, track: PlayerStreamTrack) -> None:
-        if track == self.__audio:
-            print("save push wav")
-            save_audio_to_file(self.__audio.buffer, "push.wav")
+        # if track == self.__audio:
+        #     print("save push wav")
+        #     save_audio_to_file(self.__audio.buffer, "push.wav")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:
