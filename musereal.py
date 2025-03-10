@@ -385,7 +385,8 @@ class MuseReal(BaseReal):
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             #self.recordq_video.put(new_frame)  
-            
+            if audio_frames[0][1]!=0 and audio_frames[1][1]!=0:
+                continue 
             for audio_frame in audio_frames:
                 frame,type = audio_frame
                 frame = frame.astype(np.int16)
