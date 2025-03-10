@@ -46,6 +46,11 @@ from av import AudioFrame, VideoFrame
 from basereal import BaseReal
 
 from tqdm import tqdm
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def load_model():
     # load model weights
@@ -145,9 +150,8 @@ def inference(render_event,batch_size,input_latent_list_cycle,audio_feat_queue,a
         starttime=time.perf_counter()
         try:
             whisper_chunks = audio_feat_queue.get(block=True, timeout=1)
-            print("whisper chunks not is empty")
+            # print("whisper chunks not is empty")
         except queue.Empty:
-            print("whisper chunks is empty")
             continue
         is_all_silence=True
         audio_frames = []
@@ -332,13 +336,12 @@ class MuseReal(BaseReal):
         while not quit_event.is_set():
             try:
                 res_frame,idx,audio_frames = self.res_frame_queue.get(block=True, timeout=1)
-                print("video and audio queue is not empty")
+                logging.debug(f"video and audio queue is not empty, is mute frame:{audio_frames[0][1]!=0 and audio_frames[1][1]!=0}")
             except queue.Empty:
-                print("video and audio queue is empty")
                 continue
             if audio_frames[0][1]!=0 and audio_frames[1][1]!=0: #全为静音数据，只需要取fullimg:
                
-                pre_combine_frame = combine_frame
+                # pre_combine_frame = combine_frame
                 audiotype = audio_frames[0][1]
                 if self.custom_index.get(audiotype) is not None: #有自定义视频
                     mirindex = self.mirror_index(len(self.custom_img_cycle[audiotype]),self.custom_index[audiotype])
@@ -349,13 +352,13 @@ class MuseReal(BaseReal):
                 else:
                     combine_frame = self.frame_list_cycle[idx]
 
-                if self.speaking:
-                    # 插值因子 t 从 0 到 1
-                    num_interpolated_frames = 25  # 生成 10 个过渡帧
-                    for i in range(1, num_interpolated_frames + 1):
-                        t = i / (num_interpolated_frames + 1)  # t 在 0 到 1 之间
-                        interpolated_frame = self.linear_interpolation(pre_combine_frame, combine_frame, t)
-                        self.process_frame(interpolated_frame, video_track, audio_track, loop, audio_frames)
+                # if self.speaking:
+                #     # 插值因子 t 从 0 到 1
+                #     num_interpolated_frames = 25  # 生成 10 个过渡帧
+                #     for i in range(1, num_interpolated_frames + 1):
+                #         t = i / (num_interpolated_frames + 1)  # t 在 0 到 1 之间
+                #         interpolated_frame = self.linear_interpolation(pre_combine_frame, combine_frame, t)
+                #         self.process_frame(interpolated_frame, video_track, audio_track, loop, audio_frames)
                     # interpolated_frames = self.optical_flow_interpolation(pre_combine_frame, combine_frame, num_interpolated_frames)
                     # for interpolated_frame in interpolated_frames:
                     #     self.process_frame(interpolated_frame, video_track, audio_track, loop, audio_frames)
@@ -379,7 +382,6 @@ class MuseReal(BaseReal):
 
             image = combine_frame #(outputs['image'] * 255).astype(np.uint8)
             new_frame = VideoFrame.from_ndarray(image, format="bgr24")
-            print("send video frame", "frame length :", image.shape, "audio frames sum:", len(audio_frames))
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             #self.recordq_video.put(new_frame)  
