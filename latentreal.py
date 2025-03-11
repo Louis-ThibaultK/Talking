@@ -91,7 +91,7 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
         split_video_frames = []
         for i in range(batch_size):
             id = __mirror_index(length, index + i)
-            split_faces[i] = faces[id]
+            split_faces.append(faces[id])
             split_boxes.append(boxes[id])
             split_affine_matrices.append(affine_matrices[id])
             split_video_frames.append(original_video_frames[id])
