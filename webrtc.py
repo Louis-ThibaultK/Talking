@@ -44,7 +44,8 @@ from aiortc import (
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
-
+logging.basicConfig(level=logging.INFO)  # 默认 INFO 级别
+logging.getLogger("aiortc.rtcrtpreceiver").setLevel(logging.DEBUG)  # 打印 RTP 接收日志
 
 class PlayerStreamTrack(MediaStreamTrack):
     """

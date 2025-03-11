@@ -125,7 +125,7 @@ async def offer(request):
     
     @pull_pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        print(f"push ICE connection state is {pull_pc.iceConnectionState}")
+        print(f"pull ICE connection state is {pull_pc.iceConnectionState}")
         if pull_pc.iceConnectionState == "failed":
             print("ICE connection failed.")
         elif pull_pc.iceConnectionState == "disconnected":
@@ -138,8 +138,7 @@ async def offer(request):
             while True:
                 frame = await track.recv()
                 # 这里可以处理音频数据，例如进行转换、保存等
-                # print(f"Received audio frame with timestamp {frame.time}")
-                pcm_frame, sample_rate = nerfreal.asr.decode_opus_to_pcm(frame)
+                pcm_frame, sample_rate = nerfreal.asr.channel_switch(frame)
                 nerfreal.asr.put_frame(pcm_frame, sample_rate)
 
     pull_pc.on("track", on_track)
@@ -158,7 +157,6 @@ async def offer(request):
     transceiver.setCodecPreferences(preferences)
 
     await push_pc.setRemoteDescription(push_offer)
-
     await pull_pc.setRemoteDescription(pull_offer)
    
 
@@ -193,97 +191,58 @@ def frame_to_bytes(frame):
 async def stream_pcm(frames, url):
     # 将 frame 数据转换为字节流
     
-    async with aiohttp.ClientSession() as session:
-        video_combine = bytearray()
-        audio_combine = bytearray()
-        for video_frame, audio_frame in frames:
-            video_data = frame_to_bytes(video_frame)
-            video_combine.extend(video_data)
-            audio_data = frame_to_bytes(audio_frame)
-            audio_combine.extend(audio_data)
+    for video_frame, audio_frame in frames:
+        video_data = frame_to_bytes(video_frame)
+        audio_data = frame_to_bytes(audio_frame)
+        data = video_data + audio_data
+        yield data
 
-        async with session.post(url + "/video", data=video_combine) as response:
-            print(f"Server response: {response.status}")
-            
-        async with session.post(url + "/audio", data=audio_combine) as response:
-            print(f"Audio response status: {response.status}")
 
 @app.route('/start', methods=['POST'])
 async def start(request):
-    params = await request.json()
-    url = params['url']
     global nerfreals
     if nerfreals.get(0) is None:
         sessionid = 0
         nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
         nerfreals[sessionid] = nerfreal
 
-    async def fetch_stream():
-        global player
-        player = HumanPlayer(nerfreals[0], loop=loop)
-        player._start(player.audio)
-        player._start(player.video)
-        frames = []
-        while True:
-            audio_frame = await player.audio._queue.get()
-            video_frame = await player.video._queue.get()
-            frames.append((audio_frame, video_frame))
-            if len(frames) >= 10:
-                await stream_pcm(frames, url)
-                frames.clear()    
 
-    def receive_stream():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(fetch_stream())
-        loop.run_forever()    
-
-    rendthrd = Thread(target=receive_stream, args=())
-    rendthrd.start()
-    return "Start successfully", 200 
-    
-def create_wav(frequency=440.0, duration=2, sample_rate=44100):
-    """
-    创建一个简单的 WAV 文件，生成一个指定频率的正弦波。
-
-    :param filename: 输出的 WAV 文件名
-    :param frequency: 音频的频率（默认为 440 Hz，A4 音符）
-    :param duration: 音频的持续时间（默认为 2 秒）
-    :param sample_rate: 采样率（默认为 44100 Hz）
-    """
-    # 计算样本数量
-    num_samples = int(sample_rate * duration)
-
-    # 创建时间数组
-    t = np.linspace(0, duration, num_samples, endpoint=False)
-
-    # 生成正弦波样本
-    samples = np.sin(2 * np.pi * frequency * t)
-
-    # 将浮动样本转换为整数（16位 PCM 编码）
-    byte_data = b''.join([struct.pack('<h', int(sample * 32767)) for sample in samples])
-    wav_in_memory = io.BytesIO()
-
-    # 创建 .wav 文件并写入数据
-    with wave.open(wav_in_memory, 'wb') as wf:
-        # 设置文件参数
-        wf.setnchannels(1)  # 单声道
-        wf.setsampwidth(2)  # 16位深度
-        wf.setframerate(sample_rate)  # 采样率
-        wf.writeframes(byte_data)
-
-    # 返回内存中的 WAV 数据
-    wav_in_memory.seek(0)  # 重置文件指针，以便之后读取
-    return wav_in_memory
+    global player
+    player = HumanPlayer(nerfreals[0], loop=loop)
+    player._start(player.audio)
+    player._start(player.video)
+       
+    return "Start successfully", 200
 
 
 @app.route('/humanaudio', methods=['POST'])
-async def humanaudio():
+async def humanaudio(request):
+    global nerfreals
+    if nerfreals.get(0) is None:
+        sessionid = 0
+        nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
+        nerfreals[sessionid] = nerfreal
+
+
     global player
+    player = HumanPlayer(nerfreals[0], loop=loop)
+    player._start(player.audio)
+    player._start(player.video)
     loop = player.get_loop()
-    wav = create_wav()
-    frame_count = asyncio.run_coroutine_threadsafe(nerfreals[0].asr.stream_tts(wav) , loop) 
-    return "Start successfully", 200 
+    frame_count = asyncio.run_coroutine_threadsafe(nerfreals[0].asr.stream_tts(request[file]) , loop) 
+
+    frames = []
+    for i in range(1, frame_count + 1):
+        audio_frame = await player.audio._queue.get()
+        video_frame = await player.video._queue.get()
+        frames.append((audio_frame, video_frame))
+
+    response = await stream_pcm(frames)
+    frames.clear()
+    player._stop(player.audio)
+    player._stop(player.video)
+     
+    return web.Response(body=response, content_type='application/octet-stream')
     
 
 async def on_shutdown(app):
@@ -406,23 +365,12 @@ if __name__ == '__main__':
     parser.add_argument('--smooth_path', action='store_true', help="brute-force smooth camera pose trajectory with a window size")
     parser.add_argument('--smooth_path_window', type=int, default=7, help="smoothing window size")
 
-    # asr
-    parser.add_argument('--asr', action='store_true', help="load asr for real-time app")
-    parser.add_argument('--asr_wav', type=str, default='', help="load the wav and use as input")
-    parser.add_argument('--asr_play', action='store_true', help="play out the audio")
-
-    #parser.add_argument('--asr_model', type=str, default='deepspeech')
-    parser.add_argument('--asr_model', type=str, default='cpierse/wav2vec2-large-xlsr-53-esperanto') #
-    # parser.add_argument('--asr_model', type=str, default='facebook/wav2vec2-large-960h-lv60-self')
-    # parser.add_argument('--asr_model', type=str, default='facebook/hubert-large-ls960-ft')
-
-    parser.add_argument('--asr_save_feats', action='store_true')
     # audio FPS
     parser.add_argument('--fps', type=int, default=50)
     # sliding window left-middle-right length (unit: 20ms)
-    parser.add_argument('-l', type=int, default=10)
+    parser.add_argument('-l', type=int, default=8)
     parser.add_argument('-m', type=int, default=8)
-    parser.add_argument('-r', type=int, default=10)
+    parser.add_argument('-r', type=int, default=8)
 
     parser.add_argument('--fullbody', action='store_true', help="fullbody human")
     parser.add_argument('--fullbody_img', type=str, default='data/fullbody/img')
@@ -469,6 +417,12 @@ if __name__ == '__main__':
         #     opt.sessionid=k
         #     nerfreal = MuseReal(opt,audio_processor,vae, unet, pe,timesteps)
         #     nerfreals.append(nerfreal)
+    elif opt.model == 'lantentsync':
+        from latentreal import load_model, load_avatar, warm_up
+        vae, unet, pe, audio_processor = load_model()
+        
+        avatar = load_avatar(video_path="", pipeline=pe)
+        warm_up(pe, 256, 256)
 
     if opt.transport=='rtmp':
         thread_quit = Event()
@@ -529,5 +483,4 @@ if __name__ == '__main__':
     # print('start websocket server')
     # server = pywsgi.WSGIServer(('0.0.0.0', 8000), app, handler_class=WebSocketHandler)
     # server.serve_forever()
-    
     

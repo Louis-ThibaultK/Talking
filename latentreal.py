@@ -1,0 +1,195 @@
+###############################################################################
+#  Copyright (C) 2024 LiveTalking@lipku https://github.com/lipku/LiveTalking
+#  email: lipku@foxmail.com
+# 
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#  
+#       http://www.apache.org/licenses/LICENSE-2.0
+# 
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+###############################################################################
+
+import torch
+import numpy as np
+
+#from .utils import *
+
+import time
+
+import queue
+from threading import Thread
+import torch.multiprocessing as mp
+from museasr import MuseASR
+import asyncio
+from av import AudioFrame, VideoFrame
+from basereal import BaseReal
+
+
+
+#新添加
+from basereal import BaseReal
+from latentsync.pipeline import load_all_model, _load_avatar, Pipeline
+from typing import Optional
+from latentasr import LatentsyncASR
+
+def load_model():
+    # load model weights
+    audio_processor,vae, unet, pe = load_all_model()
+    
+    return vae, unet, pe, audio_processor
+
+def load_avatar(video_path, pipeline: Pipeline):
+    return _load_avatar(video_path, pipeline=pipeline)
+
+def warm_up(pe: Pipeline,  height: Optional[int] = None,
+                width: Optional[int] = None,):
+    pe.warm_up(height, width)
+
+def __mirror_index(size, index):
+    #size = len(self.coord_list_cycle)
+    turn = index // size
+    res = index % size
+    if turn % 2 == 0:
+        return res
+    else:
+        return size - res - 1 
+
+@torch.no_grad()
+def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_matrices,
+              render_event,batch_size,audio_feat_queue,audio_out_queue,res_frame_queue,
+              ): #vae, unet, pe,timesteps
+    
+    # vae, unet, pe = load_diffusion_model()
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # timesteps = torch.tensor([0], device=device)
+    # pe = pe.half()
+    # vae.vae = vae.vae.half()
+    # unet.model = unet.model.half()
+    
+    index = 0
+    count=0
+    counttime=0
+    length = len(original_video_frames)
+    print('start inference')
+    while render_event.is_set():
+        try:
+            whisper_chunks = audio_feat_queue.get(block=True, timeout=1)
+        except queue.Empty:
+            continue
+         
+        t=time.perf_counter()
+        split_faces = []
+        split_boxes = []
+        split_affine_matrices = []
+        split_video_frames = []
+        for i in range(batch_size):
+            id = __mirror_index(length, index + i)
+            split_faces.append(faces[id])
+            split_boxes.append(boxes[id])
+            split_affine_matrices.append(affine_matrices[id])
+            split_video_frames.append(original_video_frames[id])
+
+        videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
+        audio_frames = []
+
+        for _ in range(batch_size):
+            frame,type = audio_out_queue.get()
+            audio_frames.append((frame,type)) 
+
+        index += batch_size
+        counttime += (time.perf_counter() - t)
+        count += batch_size
+
+        if count>=100:
+            print(f"------actual avg infer fps:{count/counttime:.4f}")
+            count=0
+            counttime=0
+
+        for i,res_frame in enumerate(videos):
+            #self.__pushmedia(res_frame,loop,audio_track,video_track)
+            res_frame_queue.put((res_frame, audio_frames[i]))
+               
+    print('latentreal inference processor stop')
+
+
+class LatentReal(BaseReal):
+    @torch.no_grad()
+    def __init__(self, opt, model, avatar):
+        super().__init__(opt)
+        #self.opt = opt # shared with the trainer's opt to support in-place modification of rendering parameters.
+
+        # self.fps = opt.fps # 20 ms per frame
+
+        self.batch_size = opt.batch_size
+        self.res_frame_queue = mp.Queue(self.batch_size*2)
+
+        self.vae, self.unet, self.pe, self.audio_processor = model
+        self.faces, self.original_video_frames, self.boxes, self.affine_matrices = avatar
+
+        self.asr = LatentsyncASR(opt,self,self.audio_processor)
+
+        self.render_event = mp.Event()
+
+    def __del__(self):
+        print(f'latentreal({self.sessionid}) delete')
+
+
+    def process_frames(self,quit_event,loop=None,audio_track=None,video_track=None):
+        res_frame = np.zeros((512, 512, 3), dtype=np.uint8)
+        while not quit_event.is_set():
+            try:
+                res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=1)
+            except queue.Empty:
+                continue
+
+            image = res_frame #(outputs['image'] * 255).astype(np.uint8)
+            new_frame = VideoFrame.from_ndarray(image, format="bgr24")
+            asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
+            self.record_video_data(image)
+            #self.recordq_video.put(new_frame)  
+
+            for audio_frame in audio_frames:
+                frame,type = audio_frame
+                frame = (frame * 32767).astype(np.int16)
+                new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
+                new_frame.planes[0].update(frame.tobytes())
+                new_frame.sample_rate=16000
+                # if audio_track._queue.qsize()>10:
+                #     time.sleep(0.1)
+                asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
+                self.record_audio_data(frame)
+                #self.recordq_audio.put(new_frame)
+        print('musereal process_frames thread stop') 
+            
+    def render(self,quit_event,loop=None,audio_track=None,video_track=None):
+        #if self.opt.asr:
+        #     self.asr.warm_up()
+
+        self.init_customindex()
+        process_thread = Thread(target=self.process_frames, args=(quit_event,loop,audio_track,video_track))
+        process_thread.start()
+
+        self.render_event.set() #start infer process render
+        Thread(target=inference, args=(self.pe, self.faces, self.original_video_frames, self.boxes, self.affine_matrices, self.render_event,
+                                       self.batch_size, self.asr.feat_queue, self.asr.output_queue, self.res_frame_queue)).start() #mp.Process
+
+        #_totalframe=0
+        while not quit_event.is_set(): #todo
+            # update texture every frame
+            # audio stream thread...
+            t = time.perf_counter()
+            self.asr.run_step()
+   
+            if video_track._queue.qsize()>=1.5*self.opt.batch_size:
+                print('sleep qsize=',video_track._queue.qsize())
+                time.sleep(0.04*video_track._queue.qsize()*0.8)
+   
+        self.render_event.clear() #end infer process render
+        print('latentreal thread stop')
+            

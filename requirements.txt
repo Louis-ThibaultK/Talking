@@ -43,3 +43,8 @@ opuslib
 aiortc
 aiohttp_cors
 av
+
+#latentsync
+omegaconf==2.3.0
+diffusers==0.11.1
+accelerate==0.26.1
