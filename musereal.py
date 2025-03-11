@@ -150,7 +150,6 @@ def inference(render_event,batch_size,input_latent_list_cycle,audio_feat_queue,a
         starttime=time.perf_counter()
         try:
             whisper_chunks = audio_feat_queue.get(block=True, timeout=1)
-            # print("whisper chunks not is empty")
         except queue.Empty:
             continue
         is_all_silence=True

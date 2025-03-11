@@ -107,7 +107,7 @@ class BaseASR:
         #必须wav格式
         if sample_rate is None:
             stream, sample_rate = sf.read(stream) # [T*sample_rate,] float64
-        print(f'[INFO]put audio stream {sample_rate}: {stream.shape}')
+        # print(f'[INFO]put audio stream {sample_rate}: {stream.shape}')
         stream = stream.astype(np.float32)
 
         if stream.ndim > 1:

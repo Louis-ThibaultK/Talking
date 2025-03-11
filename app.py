@@ -83,9 +83,7 @@ async def save_audio_to_file(frames, filename):
 async def offer(request):
     params = await request.json()
     pull_offer = RTCSessionDescription(sdp=params["push_sdp"], type=params["type"])
-    # print("pull offer:", pull_offer)
     push_offer = RTCSessionDescription(sdp=params["pull_sdp"], type=params["type"]) 
-    # print("push offer:", push_offer)
 
     if len(nerfreals) >= opt.max_session:
         print('reach max session')
@@ -149,7 +147,6 @@ async def offer(request):
             try:
                 while True:
                     frame = await track.recv()
-                    audio_data = frame.to_ndarray()  # �~N��~O~V NumPy �~U��~D
                     # print("track status:", frame.layout, frame.sample_rate)
                     # await audio_buffer.write(
                     #     audio_data.tobytes(),
@@ -170,8 +167,8 @@ async def offer(request):
     #拉流
     pull_pc.addTransceiver("audio", direction="recvonly")
     #推流
-    audio_transceiver = push_pc.addTransceiver(player.audio, direction="sendonly")
-    video_transceiver = push_pc.addTransceiver(player.video, direction="sendonly")
+    push_pc.addTransceiver(player.audio, direction="sendonly")
+    push_pc.addTransceiver(player.video, direction="sendonly")
 
     capabilities = RTCRtpSender.getCapabilities("video")
     preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
@@ -187,13 +184,10 @@ async def offer(request):
 
     push_answer = await push_pc.createAnswer()
     await push_pc.setLocalDescription(push_answer)
-    # print("push answer", push_answer)
 
     pull_answer = await pull_pc.createAnswer()
     await pull_pc.setLocalDescription(pull_answer)
-    # print("pull answer", pull_answer)
 
-    #return jsonify({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
 
     return web.Response(
         content_type="application/json",
@@ -202,6 +196,8 @@ async def offer(request):
              "type": push_pc.localDescription.type, "sessionid":sessionid}
         ),
     )
+
+
 
 # 将 VideoFrame 和 AudioFrame 转换为字节流
 def frame_to_bytes(frame):
@@ -298,17 +294,7 @@ def create_wav(frequency=440.0, duration=2, sample_rate=44100):
     # 返回内存中的 WAV 数据
     wav_in_memory.seek(0)  # 重置文件指针，以便之后读取
     return wav_in_memory
-
-
-@app.route('/humanaudio', methods=['POST'])
-async def humanaudio():
-    global player
-    loop = player.get_loop()
-    wav = create_wav()
-    frame_count = asyncio.run_coroutine_threadsafe(nerfreals[0].asr.stream_tts(wav) , loop) 
-    return "Start successfully", 200 
     
-
 async def on_shutdown(app):
     # close peer connections
     coros = [pc.close() for pc in pcs]
@@ -504,7 +490,6 @@ if __name__ == '__main__':
     appasync.on_shutdown.append(on_shutdown)
     appasync.router.add_post("/offer", offer)
     appasync.router.add_post("/start", start)
-    appasync.router.add_post("/humanaudio", humanaudio)
     appasync.router.add_static('/',path='web')
 
     # Configure default CORS settings.

@@ -140,22 +140,7 @@ class PlayerStreamTrack(MediaStreamTrack):
     async def recv(self) -> Union[Frame, Packet]:
         # frame = self.frames[self.counter % 30]            
         self._player._start(self)
-        # if self.kind == 'video':
-        #     frame = await self._queue.get()
-        # else: #audio
-        #     if hasattr(self, "_timestamp"):
-        #         wait = self._start + self._timestamp / SAMPLE_RATE + AUDIO_PTIME - time.time()
-        #         if wait>0:
-        #             await asyncio.sleep(wait)
-        #         if self._queue.qsize()<1:
-        #             #frame = AudioFrame(format='s16', layout='mono', samples=320)
-        #             audio = np.zeros((1, 320), dtype=np.int16)
-        #             frame = AudioFrame.from_ndarray(audio, layout='mono', format='s16')
-        #             frame.sample_rate=16000
-        #         else:
-        #             frame = await self._queue.get()
-        #     else:
-        #         frame = await self._queue.get()
+        
         frame = await self._queue.get()
         # if self.kind == 'audio':
         #     data = frame.to_ndarray().tobytes()
