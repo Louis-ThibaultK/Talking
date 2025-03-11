@@ -425,7 +425,6 @@ if __name__ == '__main__':
         model = load_model()
         
         avatar = load_avatar(video_path="./latentsync/assets/demo1_video.mp4", pipeline=model[2])
-        warm_up(model[2], 256, 256)
 
     if opt.transport=='rtmp':
         thread_quit = Event()

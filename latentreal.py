@@ -45,6 +45,7 @@ def load_model():
     return vae, unet, pe, audio_processor
 
 def load_avatar(video_path, pipeline: Pipeline):
+    pipeline.warm_up(256, 256)
     return _load_avatar(video_path, pipeline=pipeline)
 
 def warm_up(pe: Pipeline,  height: Optional[int] = None,
