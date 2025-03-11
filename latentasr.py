@@ -24,9 +24,11 @@ class LatentsyncASR(BaseASR):
         
         if len(self.frames) <= self.stride_left_size + self.stride_right_size:
             return
-        
+        print("hahahaha:", len(self.frames))
         inputs = np.concatenate(self.frames) # [N * chunk] 
+        print("heiheihei:", input.shape)
         whisper_feature = self.audio_processor.audio2feat(inputs)
+        print("henghengheng:", whisper_feature)
         whisper_chunks = self.audio_processor.feature2chunks(feature_array=whisper_feature,fps=self.fps/2 )
         #print(f"whisper_chunks len:{len(whisper_chunks)},self.audio_feats len:{len(self.audio_feats)},self.output_queue len:{self.output_queue.qsize()}")
         #self.audio_feats = self.audio_feats[-(self.stride_left_size + self.stride_right_size):]
