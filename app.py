@@ -68,7 +68,7 @@ def build_nerfreal(sessionid):
     if opt.model == 'musetalk':
         from musereal import MuseReal
         nerfreal = MuseReal(opt,model,avatar)
-    if opt.model == 'lantent':
+    if opt.model == 'lantentsync':
         from latentreal import LatentReal
         nerfreal = LatentReal(opt, model, avatar)
     return nerfreal
@@ -457,7 +457,7 @@ if __name__ == '__main__':
     #     pagename='echoapi.html'
     # elif opt.transport=='rtcpush':
     #     pagename='rtcpushapi.html'
-    # print('start http server; http://<serverip>:'+str(opt.listenport)+'/'+pagename)
+    print('start http server; http://<serverip>:'+str(opt.listenport))
 
     def run_server(runner):
         global message_queue, loop
