@@ -438,7 +438,7 @@ if __name__ == '__main__':
     appasync.router.add_post("/offer", offer)
     appasync.router.add_post("/start", start)
     appasync.router.add_post("/humanaudio", humanaudio)
-    appasync.router.add_static('/',path='web')
+    # appasync.router.add_static('/',path='web')
 
     # Configure default CORS settings.
     cors = aiohttp_cors.setup(appasync, defaults={
@@ -452,12 +452,12 @@ if __name__ == '__main__':
     for route in list(appasync.router.routes()):
         cors.add(route)
 
-    pagename='webrtcapi.html'
-    if opt.transport=='rtmp':
-        pagename='echoapi.html'
-    elif opt.transport=='rtcpush':
-        pagename='rtcpushapi.html'
-    print('start http server; http://<serverip>:'+str(opt.listenport)+'/'+pagename)
+    # pagename='webrtcapi.html'
+    # if opt.transport=='rtmp':
+    #     pagename='echoapi.html'
+    # elif opt.transport=='rtcpush':
+    #     pagename='rtcpushapi.html'
+    # print('start http server; http://<serverip>:'+str(opt.listenport)+'/'+pagename)
 
     def run_server(runner):
         global message_queue, loop
