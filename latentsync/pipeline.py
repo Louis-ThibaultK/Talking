@@ -168,9 +168,9 @@ class Pipeline(LipsyncPipeline):
             if do_classifier_free_guidance:
                 null_audio_embeds = torch.zeros_like(audio_embeds)
                 audio_embeds = torch.cat([null_audio_embeds, audio_embeds])
-        else:
-            
+        else: 
             audio_embeds = None
+            
         inference_faces = faces
         latents = all_latents
         pixel_values, masked_pixel_values, masks = self.image_processor.prepare_masks_and_masked_images(
