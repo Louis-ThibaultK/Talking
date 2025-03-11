@@ -83,7 +83,12 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
             whisper_chunks = audio_feat_queue.get(block=True, timeout=1)
         except queue.Empty:
             continue
-         
+        is_all_silence=True
+        audio_frames = []
+        for _ in range(batch_size*2):
+            frame,type = audio_out_queue.get()
+            audio_frames.append((frame,type))
+
         t=time.perf_counter()
         split_faces = []
         split_boxes = []
@@ -99,11 +104,6 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
         split_faces = torch.stack(split_faces) 
         split_video_frames = np.array(split_video_frames)
         videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
-        audio_frames = []
-
-        for _ in range(batch_size):
-            frame,type = audio_out_queue.get()
-            audio_frames.append((frame,type)) 
 
         index += batch_size
         counttime += (time.perf_counter() - t)
@@ -116,7 +116,7 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
 
         for i,res_frame in enumerate(videos):
             #self.__pushmedia(res_frame,loop,audio_track,video_track)
-            res_frame_queue.put((res_frame, audio_frames[i]))
+            res_frame_queue.put((res_frame, audio_frames[i*2:i*2+2]))
                
     print('latentreal inference processor stop')
 
@@ -157,8 +157,11 @@ class LatentReal(BaseReal):
             self.record_video_data(image)
             #self.recordq_video.put(new_frame)  
 
+            if audio_frames[0][1]!=0 and audio_frames[1][1]!=0:
+                continue 
+
             for audio_frame in audio_frames:
-                frame,type = audio_frame
+                frame, type = audio_frame
                 frame = (frame * 32767).astype(np.int16)
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())
