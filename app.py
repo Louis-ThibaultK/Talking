@@ -68,6 +68,9 @@ def build_nerfreal(sessionid):
     if opt.model == 'musetalk':
         from musereal import MuseReal
         nerfreal = MuseReal(opt,model,avatar)
+    if opt.model == 'lantent':
+        from latentreal import LatentReal
+        nerfreal = LatentReal(opt, model, avatar)
     return nerfreal
 
 #@app.route('/offer', methods=['POST'])
@@ -419,10 +422,10 @@ if __name__ == '__main__':
         #     nerfreals.append(nerfreal)
     elif opt.model == 'lantentsync':
         from latentreal import load_model, load_avatar, warm_up
-        vae, unet, pe, audio_processor = load_model()
+        model = load_model()
         
-        avatar = load_avatar(video_path="", pipeline=pe)
-        warm_up(pe, 256, 256)
+        avatar = load_avatar(video_path="./latentsync/assets/demo1_video.mp4", pipeline=pe)
+        warm_up(model[2], 256, 256)
 
     if opt.transport=='rtmp':
         thread_quit = Event()
