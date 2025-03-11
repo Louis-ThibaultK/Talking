@@ -68,7 +68,7 @@ def build_nerfreal(sessionid):
     if opt.model == 'musetalk':
         from musereal import MuseReal
         nerfreal = MuseReal(opt,model,avatar)
-    if opt.model == 'lantentsync':
+    if opt.model == 'latentsync':
         from latentreal import LatentReal
         nerfreal = LatentReal(opt, model, avatar)
     return nerfreal
@@ -420,7 +420,7 @@ if __name__ == '__main__':
         #     opt.sessionid=k
         #     nerfreal = MuseReal(opt,audio_processor,vae, unet, pe,timesteps)
         #     nerfreals.append(nerfreal)
-    elif opt.model == 'lantentsync':
+    elif opt.model == 'latentsync':
         from latentreal import load_model, load_avatar, warm_up
         model = load_model()
         
