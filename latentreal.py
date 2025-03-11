@@ -85,7 +85,7 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
             continue
          
         t=time.perf_counter()
-        split_faces = torch.empty(batch_size)
+        split_faces = []
         split_boxes = []
         split_affine_matrices = []
         split_video_frames = []
@@ -95,7 +95,8 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
             split_boxes.append(boxes[id])
             split_affine_matrices.append(affine_matrices[id])
             split_video_frames.append(original_video_frames[id])
-        
+
+        split_faces = torch.stack(split_faces) 
         split_video_frames = np.array(split_video_frames)
         videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
         audio_frames = []
