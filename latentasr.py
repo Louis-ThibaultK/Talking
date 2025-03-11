@@ -6,7 +6,7 @@ import queue
 from queue import Queue
 #import multiprocessing as mp
 from baseasr import BaseASR
-from latentsync.latentsync.whisper import Audio2Feature
+from latentsync.latentsync.whisper.audio2feature import Audio2Feature
 
 class LatentsyncASR(BaseASR):
     def __init__(self, opt, parent,audio_processor:Audio2Feature):

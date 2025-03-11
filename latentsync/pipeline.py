@@ -1,20 +1,20 @@
 import torch
-from diffusers import AutoencoderKL, UNet3DConditionModel, DDIMScheduler
-from latentsync.pipelines.lipsync_pipeline import LipsyncPipeline
+from diffusers import AutoencoderKL, DDIMScheduler
+from .latentsync.pipelines.lipsync_pipeline import LipsyncPipeline
 from typing import Callable, List, Optional, Union
-from latentsync.utils.util import read_video, read_audio, write_video, check_ffmpeg_installed
-from latentsync.utils.image_processor import ImageProcessor
+from .latentsync.utils.util import read_video, read_audio, write_video, check_ffmpeg_installed
+from .latentsync.utils.image_processor import ImageProcessor
 
 
 from pathlib import Path
 from omegaconf import OmegaConf
-from latentsync.whisper.audio2feature import Audio2Feature
+from .latentsync.whisper.audio2feature import Audio2Feature
 from diffusers.utils.import_utils import is_xformers_available
-from latentsync.models.unet import UNet3DConditionModel
+from .latentsync.models.unet import UNet3DConditionModel
 from accelerate.utils import set_seed
 
-CONFIG_PATH = Path("configs/unet/second_stage.yaml")
-CHECKPOINT_PATH = Path("checkpoints/latentsync_unet.pt")
+CONFIG_PATH = Path("latentsync/configs/unet/second_stage.yaml")
+CHECKPOINT_PATH = Path("latentsync/checkpoints/latentsync_unet.pt")
 
 def load_all_model():
     config = OmegaConf.load(CONFIG_PATH)
@@ -22,12 +22,12 @@ def load_all_model():
     is_fp16_supported = torch.cuda.is_available() and torch.cuda.get_device_capability()[0] > 7
     dtype = torch.float16 if is_fp16_supported else torch.float32
 
-    scheduler = DDIMScheduler.from_pretrained("configs")
+    scheduler = DDIMScheduler.from_pretrained("latentsync/configs")
 
     if config.model.cross_attention_dim == 768:
-        whisper_model_path = "checkpoints/whisper/small.pt"
+        whisper_model_path = "latentsync/checkpoints/whisper/small.pt"
     elif config.model.cross_attention_dim == 384:
-        whisper_model_path = "checkpoints/whisper/tiny.pt"
+        whisper_model_path = "latentsync/checkpoints/whisper/tiny.pt"
     else:
         raise NotImplementedError("cross_attention_dim must be 768 or 384")
     
