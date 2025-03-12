@@ -118,7 +118,6 @@ class AlignRestore(object):
     
     def restore_img_gpu(self, input_img, face, affine_matrix):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("haha", affine_matrix)
         # 1. 转换为 PyTorch Tensor
         input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
         face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
@@ -139,12 +138,13 @@ class AlignRestore(object):
         # # 5. 修正 affine_grid 形状 (2,3) → (3,4)
         # inverse_affine = F.pad(inverse_affine, (0, 1, 0, 1), value=0)  # 变成 (3,4)
         # inverse_affine[2, 2] = 1  # 最后一行设置成 [0,0,1]
-        # inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,3,4)
+        inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,2,3)
 
         # 6. warpAffine (face)
         face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
         grid = F.affine_grid(inverse_affine, face.size(), align_corners=False)
         inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
+        print("hahahaha", inv_restored.shape)
 
         # 7. 生成 mask 并 warp
         mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
