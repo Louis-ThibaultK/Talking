@@ -119,38 +119,55 @@ class AlignRestore(object):
     def restore_img_gpu(self, input_img, face, affine_matrix):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        #  1. 转换为 PyTorch Tensor
-        input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0
-        face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0
+        # 1. 转换为 PyTorch Tensor
+        input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
+        face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
 
-        #  2. 计算仿射变换
-        inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)
+        # 2. 计算 upscaled 尺寸
+        h, w, _ = input_img.shape
+        h_up, w_up = int(h * self.upscale_factor), int(w * self.upscale_factor)
+
+        # 3. 上采样 input_img
+        upsample_img = F.interpolate(input_img.permute(2, 0, 1).unsqueeze(0), size=(h_up, w_up), mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
+
+        # 4. 计算逆仿射矩阵
+        inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)  # (2,3)
         inverse_affine *= self.upscale_factor
         if self.upscale_factor > 1:
             inverse_affine[:, 2] += 0.5 * self.upscale_factor
 
-        #  3. warpAffine 变换
-        face = face.unsqueeze(0).unsqueeze(0)  # 变为 [1, 1, H, W]
-        grid = F.affine_grid(inverse_affine.unsqueeze(0), face.size(), align_corners=False)
-        inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+        # 5. 修正 affine_grid 形状 (2,3) → (3,4)
+        inverse_affine = F.pad(inverse_affine, (0, 1, 0, 1), value=0)  # 变成 (3,4)
+        inverse_affine[2, 2] = 1  # 最后一行设置成 [0,0,1]
+        inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,3,4)
 
-        #  4. 生成 mask 并 warp
+        # 6. warpAffine (face)
+        face = face.permute(2, 0, 1).unsqueeze(0)  # (1,3,H,W)
+        grid = F.affine_grid(inverse_affine, face.size(), align_corners=False)
+        inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
+
+        # 7. 生成 mask 并 warp
         mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
-        mask = mask.unsqueeze(0).unsqueeze(0)  # 变为 [1, 1, H, W]
-        mask_grid = F.affine_grid(inverse_affine.unsqueeze(0), mask.size(), align_corners=False)
+        mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,1,H,W)
+        mask_grid = F.affine_grid(inverse_affine, mask.size(), align_corners=False)
         inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
-        #  5. PyTorch 形态学腐蚀（近似）
+        # 8. PyTorch 形态学腐蚀（近似）
         kernel_size = max(1, int(2 * self.upscale_factor))
         inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
 
-        #  6. 计算融合 mask
-        inv_soft_mask = F.gaussian_blur(inv_mask_erosion.unsqueeze(0).unsqueeze(0), (7, 7)).squeeze(0).squeeze(0)
+        # 9. 计算融合 mask（模仿 Gaussian Blur）
+        blur_size = kernel_size * 2
+        inv_soft_mask = F.gaussian_blur(inv_mask_erosion.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
 
-        #  7. 计算最终融合
-        upsample_img = inv_soft_mask * inv_restored + (1 - inv_soft_mask) * input_img
+        # 10. 计算最终融合
+        inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
+        upsample_img = inv_soft_mask * inv_restored + (1 - inv_soft_mask) * upsample_img
 
-        return (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
+        # 11. 类型转换
+        upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
+
+        return upsample_img
 
 
 class laplacianSmooth:
