@@ -106,7 +106,7 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
         start_time = time.perf_counter()
         videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
         end_time = time.perf_counter()
-        print(f"代码执行时间: {end_time - start_time:.6f} 秒")
+        print(f"inference代码执行时间: {end_time - start_time:.6f} 秒")
 
         index += batch_size
         counttime += (time.perf_counter() - t)

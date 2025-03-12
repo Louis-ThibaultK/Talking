@@ -12,6 +12,7 @@ from .latentsync.whisper.audio2feature import Audio2Feature
 from diffusers.utils.import_utils import is_xformers_available
 from .latentsync.models.unet import UNet3DConditionModel
 from accelerate.utils import set_seed
+import time
 
 CONFIG_PATH = Path("latentsync/configs/unet/second_stage.yaml")
 CHECKPOINT_PATH = Path("latentsync/checkpoints/latentsync_unet.pt")
@@ -118,6 +119,7 @@ class Pipeline(LipsyncPipeline):
         callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
         callback_steps: Optional[int] = 1,
     ):
+        start_time = time.perf_counter()
         self.unet.eval()
         # 0. Define call parameters
         batch_size = 1
@@ -200,6 +202,8 @@ class Pipeline(LipsyncPipeline):
 
         # 9. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
+        end_time = time.perf_counter()
+        print(f"推理预处理执行时间: {end_time - start_time:.6f} 秒")
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for j, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
@@ -228,6 +232,8 @@ class Pipeline(LipsyncPipeline):
                     if callback is not None and j % callback_steps == 0:
                         callback(j, t, latents)
 
+        start_time = time.perf_counter()
+        print(f"推理过程执行时间: {start_time - end_time:.6f} 秒")
         # Recover the pixel values
         decoded_latents = self.decode_latents(latents)
         decoded_latents = self.paste_surrounding_pixels_back(
@@ -243,5 +249,6 @@ class Pipeline(LipsyncPipeline):
         #     torch.cat(masked_video_frames), original_video_frames, boxes, affine_matrices
         # )
 
-
+        end_time = time.perf_counter()
+        print(f"推理后处理执行时间: {end_time - start_time:.6f} 秒")
         return synced_video_frames
