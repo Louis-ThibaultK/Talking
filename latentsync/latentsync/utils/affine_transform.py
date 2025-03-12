@@ -3,6 +3,7 @@
 import numpy as np
 import cv2
 import torch
+import torch.nn.functional as F
 
 
 def transformation_from_points(points1, points0, smooth=True, p_bias=None):
@@ -116,65 +117,38 @@ class AlignRestore(object):
         return upsample_img
     
     def restore_img_gpu(self, input_img, face, affine_matrix):
-        h, w, _ = input_img.shape
-        h_up, w_up = int(h * self.upscale_factor), int(w * self.upscale_factor)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        #  1. 使用 CUDA 加速插值
-        input_img_gpu = cv2.cuda_GpuMat()
-        input_img_gpu.upload(input_img)
-        upsample_img_gpu = cv2.cuda.resize(input_img_gpu, (w_up, h_up), interpolation=cv2.INTER_LINEAR)
+        #  1. 转换为 PyTorch Tensor
+        input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0
+        face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0
 
         #  2. 计算仿射变换
-        inverse_affine = cv2.invertAffineTransform(affine_matrix)
+        inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)
         inverse_affine *= self.upscale_factor
         if self.upscale_factor > 1:
             inverse_affine[:, 2] += 0.5 * self.upscale_factor
 
-        #  3. 使用 CUDA 加速 warpAffine
-        face_gpu = cv2.cuda_GpuMat()
-        face_gpu.upload(face)
-        inv_restored_gpu = cv2.cuda.warpAffine(face_gpu, inverse_affine, (w_up, h_up), flags=cv2.INTER_LINEAR)
+        #  3. 使用 `grid_sample` 进行 warpAffine
+        grid = F.affine_grid(inverse_affine.unsqueeze(0), face.unsqueeze(0).size(), align_corners=False)
+        inv_restored = F.grid_sample(face.unsqueeze(0), grid, mode="bilinear", align_corners=False).squeeze(0)
 
-        #  4. 生成 mask 并用 CUDA 处理
-        mask = np.ones((self.face_size[1], self.face_size[0]), dtype=np.float32)
-        mask_gpu = cv2.cuda_GpuMat()
-        mask_gpu.upload(mask)
-        inv_mask_gpu = cv2.cuda.warpAffine(mask_gpu, inverse_affine, (w_up, h_up))
+        #  4. 生成 mask 并 warp
+        mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
+        mask_grid = F.affine_grid(inverse_affine.unsqueeze(0), mask.unsqueeze(0).size(), align_corners=False)
+        inv_mask = F.grid_sample(mask.unsqueeze(0), mask_grid, mode="bilinear", align_corners=False).squeeze(0)
 
-        #  5. CUDA 加速形态学腐蚀
+        #  5. PyTorch 形态学腐蚀（近似）
         kernel_size = max(1, int(2 * self.upscale_factor))
-        kernel = np.ones((kernel_size, kernel_size), np.uint8)
-        kernel_gpu = cv2.cuda_GpuMat()
-        kernel_gpu.upload(kernel)
-        inv_mask_erosion_gpu = cv2.cuda.erode(inv_mask_gpu, kernel_gpu)
+        inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0)
 
-        #  6. 计算 face blending
-        inv_mask_erosion = inv_mask_erosion_gpu.download()
-        pasted_face_gpu = cv2.cuda.multiply(inv_mask_erosion_gpu, inv_restored_gpu)
+        #  6. 计算融合 mask
+        inv_soft_mask = F.gaussian_blur(inv_mask_erosion.unsqueeze(0), (7, 7)).squeeze(0)
 
-        #  7. 计算模糊 mask（CUDA）
-        total_face_area = np.sum(inv_mask_erosion)
-        w_edge = int(total_face_area**0.5) // 20
-        erosion_radius = max(1, w_edge * 2)
-        kernel_blur = np.ones((erosion_radius, erosion_radius), np.uint8)
-        kernel_blur_gpu = cv2.cuda_GpuMat()
-        kernel_blur_gpu.upload(kernel_blur)
-        inv_mask_center_gpu = cv2.cuda.erode(inv_mask_erosion_gpu, kernel_blur_gpu)
+        #  7. 计算最终融合
+        upsample_img = inv_soft_mask * inv_restored + (1 - inv_soft_mask) * input_img
 
-        blur_size = max(1, w_edge * 2)
-        inv_soft_mask_gpu = cv2.cuda.GaussianBlur(inv_mask_center_gpu, (blur_size + 1, blur_size + 1), 0)
-
-        #  8. 计算融合
-        inv_soft_mask = inv_soft_mask_gpu.download()
-        inv_soft_mask = inv_soft_mask[:, :, None]
-        upsample_img = upsample_img_gpu.download()
-
-        upsample_img = inv_soft_mask * pasted_face_gpu.download() + (1 - inv_soft_mask) * upsample_img
-
-        #  9. 避免不必要的 dtype 转换
-        upsample_img = np.clip(upsample_img, 0, 255).astype(np.uint8)
-
-        return upsample_img
+        return (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
 
 class laplacianSmooth:
