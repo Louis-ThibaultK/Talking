@@ -111,7 +111,7 @@ class Pipeline(LipsyncPipeline):
         num_frames: int = 16,
         video_fps: int = 25,
         audio_sample_rate: int = 16000,
-        num_inference_steps: int = 2,
+        num_inference_steps: int = 5,
         guidance_scale: float = 1.5,
         weight_dtype: Optional[torch.dtype] = torch.float16,
         eta: float = 0.0,
@@ -205,33 +205,33 @@ class Pipeline(LipsyncPipeline):
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         end_time = time.perf_counter()
         print(f"推理预处理执行时间: {end_time - start_time:.6f} 秒")
-        with self.progress_bar(total=num_inference_steps) as progress_bar:
-            for j, t in enumerate(timesteps):
-                # expand the latents if we are doing classifier free guidance
-                latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
+        # with self.progress_bar(total=num_inference_steps) as progress_bar:
+        for j, t in enumerate(timesteps):
+            # expand the latents if we are doing classifier free guidance
+            latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
 
-                # concat latents, mask, masked_image_latents in the channel dimension
-                latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-                latent_model_input = torch.cat(
-                    [latent_model_input, mask_latents, masked_image_latents, image_latents], dim=1
-                )
+            # concat latents, mask, masked_image_latents in the channel dimension
+            latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+            latent_model_input = torch.cat(
+                [latent_model_input, mask_latents, masked_image_latents, image_latents], dim=1
+            )
 
-                # predict the noise residual
-                noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=audio_embeds).sample
+            # predict the noise residual
+            noise_pred = self.unet(latent_model_input, t, encoder_hidden_states=audio_embeds).sample
 
-                # perform guidance
-                if do_classifier_free_guidance:
-                    noise_pred_uncond, noise_pred_audio = noise_pred.chunk(2)
-                    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_audio - noise_pred_uncond)
+            # perform guidance
+            if do_classifier_free_guidance:
+                noise_pred_uncond, noise_pred_audio = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_audio - noise_pred_uncond)
 
-                # compute the previous noisy sample x_t -> x_t-1
-                latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
+            # compute the previous noisy sample x_t -> x_t-1
+            latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
 
-                # call the callback, if provided
-                if j == len(timesteps) - 1 or ((j + 1) > num_warmup_steps and (j + 1) % self.scheduler.order == 0):
-                    progress_bar.update()
-                    if callback is not None and j % callback_steps == 0:
-                        callback(j, t, latents)
+            # call the callback, if provided
+            if j == len(timesteps) - 1 or ((j + 1) > num_warmup_steps and (j + 1) % self.scheduler.order == 0):
+                # progress_bar.update()
+                if callback is not None and j % callback_steps == 0:
+                    callback(j, t, latents)
 
         start_time = time.perf_counter()
         print(f"推理过程执行时间: {start_time - end_time:.6f} 秒")
