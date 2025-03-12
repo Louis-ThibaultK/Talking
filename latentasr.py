@@ -25,16 +25,17 @@ class LatentsyncASR(BaseASR):
         if len(self.frames) <= self.stride_left_size + self.stride_right_size:
             return
         print("hahahaha:", len(self.frames))
+        length = len(self.frames)
         inputs = np.concatenate(self.frames) # [N * chunk] 
-        print("heiheihei:", input.shape)
+        print("heiheihei:", inputs.shape)
         whisper_feature = self.audio_processor.audio2feat(inputs)
-        print("henghengheng:", whisper_feature)
+        print("henghengheng:", len(whisper_feature))
         whisper_chunks = self.audio_processor.feature2chunks(feature_array=whisper_feature,fps=self.fps/2 )
         #print(f"whisper_chunks len:{len(whisper_chunks)},self.audio_feats len:{len(self.audio_feats)},self.output_queue len:{self.output_queue.qsize()}")
         #self.audio_feats = self.audio_feats[-(self.stride_left_size + self.stride_right_size):]
         self.feat_queue.put(whisper_chunks)
         # discard the old part to save memory
-        self.frames = self.frames[-(self.stride_left_size + self.stride_right_size):]
+        self.frames = self.frames[-(length):]
 
     def put_frame(self,audio_stream, sample_rate):
         if audio_stream is not None and len(audio_stream)>0: 
