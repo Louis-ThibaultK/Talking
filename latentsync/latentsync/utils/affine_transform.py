@@ -2,6 +2,8 @@
 
 import numpy as np
 import cv2
+import torch
+import torch.nn.functional as F
 
 
 def transformation_from_points(points1, points0, smooth=True, p_bias=None):
@@ -113,6 +115,36 @@ class AlignRestore(object):
         else:
             upsample_img = upsample_img.astype(np.uint8)
         return upsample_img
+    
+    def restore_img_gpu(self, input_img, face, affine_matrix):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        #  1. 转换为 PyTorch Tensor
+        input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0
+        face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0
+        # 2. 计算仿射变换
+        inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)
+        inverse_affine *= self.upscale_factor
+        if self.upscale_factor > 1:
+            inverse_affine[:, 2] += 0.5 * self.upscale_factor
+        # 3. 使用 `grid_sample` 进行 warpAffine
+        grid = F.affine_grid(inverse_affine.unsqueeze(0), face.unsqueeze(0).size(), align_corners=False)
+        inv_restored = F.grid_sample(face.unsqueeze(0), grid, mode="bilinear", align_corners=False).squeeze(0)
+        # 4. 生成 mask 并 warp
+        mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
+        mask_grid = F.affine_grid(inverse_affine.unsqueeze(0), mask.unsqueeze(0).size(), align_corners=False)
+        inv_mask = F.grid_sample(mask.unsqueeze(0), mask_grid, mode="bilinear", align_corners=False).squeeze(0)
+        # 5. PyTorch 形态学腐蚀（近似）
+        kernel_size = max(1, int(2 * self.upscale_factor))
+        inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0)
+
+        # 6. 计算融合 mask
+        inv_soft_mask = F.gaussian_blur(inv_mask_erosion.unsqueeze(0), (7, 7)).squeeze(0)
+
+        # 7. 计算最终融合
+        upsample_img = inv_soft_mask * inv_restored + (1 - inv_soft_mask) * input_img
+
+        return (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
 
 class laplacianSmooth:

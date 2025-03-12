@@ -291,7 +291,8 @@ class LipsyncPipeline(DiffusionPipeline):
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
             start_time = time.perf_counter()
             
-            out_frame = self.image_processor.restorer.restore_img(video_frames[index], face, affine_matrices[index])
+            out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
+            self.image_processor
             end_time = time.perf_counter()
             print(f"仿射变换执行时间: {end_time - start_time:.6f} 秒")
             out_frames.append(out_frame)
