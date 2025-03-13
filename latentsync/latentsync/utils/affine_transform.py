@@ -142,6 +142,7 @@ class AlignRestore(object):
 
         # 6. warpAffine (face)
         face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
+        print("heihei:", face.shape)
         grid = F.affine_grid(inverse_affine, face.size(), align_corners=False)
         inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
         print("hahahaha", inv_restored.shape)
@@ -155,10 +156,16 @@ class AlignRestore(object):
         # 8. PyTorch 形态学腐蚀（近似）
         kernel_size = max(1, int(2 * self.upscale_factor))
         inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
-
+        pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
+        total_face_area = torch.sum(inv_mask_erosion)
+        w_edge = int(torch.sqrt(total_face_area).item()) // 20
+        erosion_radius = w_edge * 2
+        
+        kernel_size = max(1, erosion_radius)
+        inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         # 9. 计算融合 mask（模仿 Gaussian Blur）
         blur_size = kernel_size * 2
-        inv_soft_mask = F.gaussian_blur(inv_mask_erosion.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
+        inv_soft_mask = F.gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
 
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
