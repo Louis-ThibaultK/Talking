@@ -89,27 +89,33 @@ class AlignRestore(object):
         h, w, _ = input_img.shape
         h_up, w_up = int(h * self.upscale_factor), int(w * self.upscale_factor)
         upsample_img = cv2.resize(input_img, (w_up, h_up), interpolation=cv2.INTER_LANCZOS4)
+        print("hahahaha1", upsample_img.shape)
         inverse_affine = cv2.invertAffineTransform(affine_matrix)
         inverse_affine *= self.upscale_factor
+        print("hahahaha2", inverse_affine.shape)
         if self.upscale_factor > 1:
             extra_offset = 0.5 * self.upscale_factor
         else:
             extra_offset = 0
         inverse_affine[:, 2] += extra_offset
         inv_restored = cv2.warpAffine(face, inverse_affine, (w_up, h_up), flags=cv2.INTER_LANCZOS4)
+        print("hahahaha3", face.shape, inv_restored.shape)
         mask = np.ones((self.face_size[1], self.face_size[0]), dtype=np.float32)
         inv_mask = cv2.warpAffine(mask, inverse_affine, (w_up, h_up))
         inv_mask_erosion = cv2.erode(
             inv_mask, np.ones((int(2 * self.upscale_factor), int(2 * self.upscale_factor)), np.uint8)
         )
+        print("hahahaha4", inv_mask.shape, inv_mask_erosion.shape)
         pasted_face = inv_mask_erosion[:, :, None] * inv_restored
         total_face_area = np.sum(inv_mask_erosion)
         w_edge = int(total_face_area**0.5) // 20
         erosion_radius = w_edge * 2
         inv_mask_center = cv2.erode(inv_mask_erosion, np.ones((erosion_radius, erosion_radius), np.uint8))
+        print("hahahaha5", inv_mask_erosion.shape, inv_mask_center.shape)
         blur_size = w_edge * 2
         inv_soft_mask = cv2.GaussianBlur(inv_mask_center, (blur_size + 1, blur_size + 1), 0)
         inv_soft_mask = inv_soft_mask[:, :, None]
+        print("hahahaha6", inv_soft_mask.shape, pasted_face.shape, upsample_img.shape)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
         if np.max(upsample_img) > 256:
             upsample_img = upsample_img.astype(np.uint16)
