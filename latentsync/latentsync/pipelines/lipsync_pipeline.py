@@ -280,7 +280,6 @@ class LipsyncPipeline(DiffusionPipeline):
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
         print(f"Restoring {len(faces)} faces...")
-        print("hahaha", type(faces), type(video_frames), type(boxes), type(affine_matrices))
         for index, face in enumerate(tqdm.tqdm(faces)):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
@@ -290,11 +289,8 @@ class LipsyncPipeline(DiffusionPipeline):
             face = (face / 2 + 0.5).clamp(0, 1)
             face = (face * 255).to(torch.uint8).cpu().numpy()
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
-            start_time = time.perf_counter()
             
             out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
-            end_time = time.perf_counter()
-            print(f"仿射变换执行时间: {end_time - start_time:.6f} 秒")
             out_frames.append(out_frame)
         return np.stack(out_frames, axis=0) 
 
