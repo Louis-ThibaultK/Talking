@@ -150,7 +150,7 @@ class AlignRestore(object):
 
         # 6. warpAffine (face)
         face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
-        grid = F.affine_grid(inverse_affine, face.size(), align_corners=False)
+        grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
         inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
         print("hahahaha3", face.shape, inv_restored.shape)
 
