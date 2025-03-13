@@ -159,12 +159,12 @@ class AlignRestore(object):
         mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,H,W)
         mask_grid = F.affine_grid(inverse_affine, mask.size(), align_corners=False)
         inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
-        print("hahahaha4", inv_mask.shape, inv_mask_erosion.shape)
+        
 
         # 8. PyTorch 形态学腐蚀（近似）
         kernel_size = max(1, int(2 * self.upscale_factor) + 1)
         inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
-
+        print("hahahaha4", inv_mask.shape, inv_mask_erosion.shape)
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
         total_face_area = torch.sum(inv_mask_erosion)
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
