@@ -172,6 +172,7 @@ class AlignRestore(object):
 
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
+        print("hahaha4", inv_soft_mask.shape, pasted_face.shape, upsample_img.shape)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
 
         # 11. 类型转换
