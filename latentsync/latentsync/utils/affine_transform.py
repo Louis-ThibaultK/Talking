@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import torch
 import torch.nn.functional as F
+from torchvision.transforms.functional import gaussian_blur
 
 
 def transformation_from_points(points1, points0, smooth=True, p_bias=None):
@@ -166,7 +167,8 @@ class AlignRestore(object):
         inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         # 9. 计算融合 mask（模仿 Gaussian Blur）
         blur_size = kernel_size * 2
-        inv_soft_mask = F.gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
+        inv_soft_mask = gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
+        # inv_soft_mask = F.gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
 
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
