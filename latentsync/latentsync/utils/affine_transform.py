@@ -157,7 +157,7 @@ class AlignRestore(object):
         # 7. 生成 mask 并 warp
         mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
         mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,H,W)
-        mask_grid = F.affine_grid(inverse_affine, mask.size(), align_corners=False)
+        mask_grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
         inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
         
 
