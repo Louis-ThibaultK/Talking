@@ -154,7 +154,7 @@ class AlignRestore(object):
         inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
         # 8. PyTorch 形态学腐蚀（近似）
-        kernel_size = max(1, int(2 * self.upscale_factor))
+        kernel_size = max(1, int(2 * self.upscale_factor) + 1)
         inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         print("hahaha3", inv_mask.shape, inv_mask_erosion.shape)
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
@@ -162,7 +162,7 @@ class AlignRestore(object):
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
         erosion_radius = w_edge * 2
         
-        kernel_size = max(1, erosion_radius)
+        kernel_size = max(1, erosion_radius + 1)
         inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         # 9. 计算融合 mask（模仿 Gaussian Blur）
         blur_size = kernel_size * 2
