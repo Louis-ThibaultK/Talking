@@ -89,33 +89,27 @@ class AlignRestore(object):
         h, w, _ = input_img.shape
         h_up, w_up = int(h * self.upscale_factor), int(w * self.upscale_factor)
         upsample_img = cv2.resize(input_img, (w_up, h_up), interpolation=cv2.INTER_LANCZOS4)
-        print("hahahaha1", upsample_img.shape)
         inverse_affine = cv2.invertAffineTransform(affine_matrix)
         inverse_affine *= self.upscale_factor
-        print("hahahaha2", inverse_affine.shape)
         if self.upscale_factor > 1:
             extra_offset = 0.5 * self.upscale_factor
         else:
             extra_offset = 0
         inverse_affine[:, 2] += extra_offset
         inv_restored = cv2.warpAffine(face, inverse_affine, (w_up, h_up), flags=cv2.INTER_LANCZOS4)
-        print("hahahaha3", face.shape, inv_restored.shape)
         mask = np.ones((self.face_size[1], self.face_size[0]), dtype=np.float32)
         inv_mask = cv2.warpAffine(mask, inverse_affine, (w_up, h_up))
         inv_mask_erosion = cv2.erode(
             inv_mask, np.ones((int(2 * self.upscale_factor), int(2 * self.upscale_factor)), np.uint8)
         )
-        print("hahahaha4", inv_mask.shape, inv_mask_erosion.shape)
         pasted_face = inv_mask_erosion[:, :, None] * inv_restored
         total_face_area = np.sum(inv_mask_erosion)
         w_edge = int(total_face_area**0.5) // 20
         erosion_radius = w_edge * 2
         inv_mask_center = cv2.erode(inv_mask_erosion, np.ones((erosion_radius, erosion_radius), np.uint8))
-        print("hahahaha5", inv_mask_erosion.shape, inv_mask_center.shape)
         blur_size = w_edge * 2
         inv_soft_mask = cv2.GaussianBlur(inv_mask_center, (blur_size + 1, blur_size + 1), 0)
         inv_soft_mask = inv_soft_mask[:, :, None]
-        print("hahahaha6", inv_soft_mask.shape, pasted_face.shape, upsample_img.shape)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
         if np.max(upsample_img) > 256:
             upsample_img = upsample_img.astype(np.uint16)
@@ -135,11 +129,9 @@ class AlignRestore(object):
 
         # 3. 上采样 input_img
         upsample_img = F.interpolate(input_img.permute(2, 0, 1).unsqueeze(0), size=(h_up, w_up), mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
-        print("hahahaha1", upsample_img.shape)
         # 4. 计算逆仿射矩阵
         inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)  # (2,3)
         inverse_affine *= self.upscale_factor
-        print("hahahaha2", inverse_affine.shape)
         if self.upscale_factor > 1:
             inverse_affine[:, 2] += 0.5 * self.upscale_factor
 
@@ -152,19 +144,16 @@ class AlignRestore(object):
         face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
         grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
         inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
-        print("hahahaha3", face.shape, inv_restored.shape)
 
         # 7. 生成 mask 并 warp
         mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
         mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,H,W)
         mask_grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
         inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
-        
 
         # 8. PyTorch 形态学腐蚀（近似）
         kernel_size = max(1, int(2 * self.upscale_factor) + 1)
         inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
-        print("hahahaha4", inv_mask.shape, inv_mask_erosion.shape)
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
         total_face_area = torch.sum(inv_mask_erosion)
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
@@ -172,7 +161,6 @@ class AlignRestore(object):
         
         kernel_size = max(1, erosion_radius + 1)
         inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
-        print("hahahaha5", inv_mask_erosion.shape, inv_mask_center.shape)
         # 9. 计算融合 mask（模仿 Gaussian Blur）
         blur_size = kernel_size * 2
         inv_soft_mask = gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
@@ -180,7 +168,6 @@ class AlignRestore(object):
 
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
-        print("hahaha4", inv_soft_mask.shape, pasted_face.shape, upsample_img.shape)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
 
         # 11. 类型转换
