@@ -253,7 +253,7 @@ class Pipeline(LipsyncPipeline):
         #     torch.cat(masked_video_frames), original_video_frames, boxes, affine_matrices
         # )
 
-        end_time = time.perf_counter()
-        print(f"推理后处理后半段执行时间: {end_time - start_time:.6f} 秒")
+        start_time = time.perf_counter()
+        print(f"推理后处理后半段执行时间: { start_time - end_time:.6f} 秒")
         return synced_video_frames
         # return np.stack(synced_video_frames, axis=0) 
