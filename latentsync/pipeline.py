@@ -237,14 +237,16 @@ class Pipeline(LipsyncPipeline):
         print(f"推理过程执行时间: {start_time - end_time:.6f} 秒")
         # Recover the pixel values
         decoded_latents = self.decode_latents(latents)
+        end_time = time.perf_counter()
+        print(f"推理后处理前半段执行时间: {end_time - start_time:.6f} 秒") 
         decoded_latents = self.paste_surrounding_pixels_back(
             decoded_latents, pixel_values, 1 - masks, device, weight_dtype
         )
         synced_video_frames.append(decoded_latents)
         # masked_video_frames.append(masked_pixel_values)
 
-        end_time = time.perf_counter()
-        print(f"推理后处理前半段执行时间: {end_time - start_time:.6f} 秒")
+        start_time = time.perf_counter()
+        print(f"推理后处理后半段执行时间: {start_time - end_time:.6f} 秒")
 
         synced_video_frames = self.restore_video(
             torch.cat(synced_video_frames), original_video_frames, boxes, affine_matrices
@@ -252,8 +254,5 @@ class Pipeline(LipsyncPipeline):
         # masked_video_frames = self.restore_video(
         #     torch.cat(masked_video_frames), original_video_frames, boxes, affine_matrices
         # )
-
-        start_time = time.perf_counter()
-        print(f"推理后处理后半段执行时间: { start_time - end_time:.6f} 秒")
         return synced_video_frames
         # return np.stack(synced_video_frames, axis=0) 
