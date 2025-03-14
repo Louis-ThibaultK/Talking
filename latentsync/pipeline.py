@@ -111,9 +111,9 @@ class Pipeline(LipsyncPipeline):
         num_frames: int = 16,
         video_fps: int = 25,
         audio_sample_rate: int = 16000,
-        num_inference_steps: int = 5,
+        num_inference_steps: int = 4,
         guidance_scale: float = 1.5,
-        weight_dtype: Optional[torch.dtype] = torch.float16,
+        weight_dtype: Optional[torch.dtype] = torch.bfloat16,
         eta: float = 0.0,
         mask: str = "fix_mask",
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
@@ -238,7 +238,6 @@ class Pipeline(LipsyncPipeline):
         # Recover the pixel values
         decoded_latents = self.decode_latents(latents)
         end_time = time.perf_counter()
-        print(f"推理后处理前半段执行时间: {end_time - start_time:.6f} 秒") 
         decoded_latents = self.paste_surrounding_pixels_back(
             decoded_latents, pixel_values, 1 - masks, device, weight_dtype
         )
@@ -246,7 +245,6 @@ class Pipeline(LipsyncPipeline):
         # masked_video_frames.append(masked_pixel_values)
 
         start_time = time.perf_counter()
-        print(f"推理后处理后半段执行时间: {start_time - end_time:.6f} 秒")
 
         synced_video_frames = self.restore_video(
             torch.cat(synced_video_frames), original_video_frames, boxes, affine_matrices
