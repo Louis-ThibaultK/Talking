@@ -85,7 +85,6 @@ class Audio2Feature:
         whisper_idx_multiplier = 50.0 / fps
         i = 1
         print(f"video in {fps} FPS, audio idx in 50FPS")
-        # cpu上跑的
         while True:
             start_idx = int(i * whisper_idx_multiplier)
             selected_feature, selected_idx = self.get_sliced_feature(
@@ -102,7 +101,6 @@ class Audio2Feature:
     def _audio2feat(self, audio_path: str):
         # get the sample rate of the audio
         result = self.model.transcribe(audio_path)
-        print("heiheihei:", result.device)
         embed_list = []
         for emb in result["segments"]:
             encoder_embeddings = emb["encoder_embeddings"]
