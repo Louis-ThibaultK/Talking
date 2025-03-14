@@ -305,6 +305,8 @@ class LipsyncPipeline(DiffusionPipeline):
         end = time.perf_counter()
         print(f"hahahaha8: {end - start:.6f} 秒")
         out_frames = torch.stack(out_frames).cpu().numpy()
+        start = time.perf_counter()
+        print(f"hahahaha9: {start - end:.6f} 秒")
         return out_frames
 
     @torch.no_grad()
