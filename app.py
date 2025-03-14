@@ -424,7 +424,7 @@ if __name__ == '__main__':
         from latentreal import load_model, load_avatar, warm_up
         model = load_model()
         
-        avatar = load_avatar(video_path="./latentsync/assets/demo1_video.mp4", pipeline=model[2])
+        avatar = load_avatar(video_path="./latentsync/assets/zuoyi.mp4", pipeline=model[2])
 
     if opt.transport=='rtmp':
         thread_quit = Event()
