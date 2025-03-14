@@ -36,6 +36,7 @@ from ..whisper.audio2feature import Audio2Feature
 import tqdm
 import soundfile as sf
 import time
+import torch.nn.functional as F
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -289,7 +290,8 @@ class LipsyncPipeline(DiffusionPipeline):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
             width = int(x2 - x1)
-            face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
+            F.interpolate(face.unsqueeze(0), size=(height, width), mode="bilinear", align_corners=False).squeeze(0)
+            # face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
             face = rearrange(face, "c h w -> h w c")
             face = (face / 2 + 0.5).clamp(0, 1)
             # face = (face * 255).to(torch.uint8)
