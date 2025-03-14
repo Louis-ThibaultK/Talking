@@ -304,10 +304,11 @@ class LipsyncPipeline(DiffusionPipeline):
             print("hahahaha3", face.shape)
             start = time.perf_counter()
             out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
-            end = time.perf_counter
+            end = time.perf_counter()
+            print(f"hahahaha8: {end - start:.6f} 秒")
             out_frames.append(out_frame)
-        out_frames = out_frames.cpu().numpy()
-        return np.stack(out_frames, axis=0) 
+        out_frames = torch.stack(out_frames).cpu().numpy()
+        return out_frames
 
     @torch.no_grad()
     def __call__(
