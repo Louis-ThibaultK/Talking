@@ -251,6 +251,7 @@ class LipsyncPipeline(DiffusionPipeline):
         # Paste the surrounding pixels back, because we only want to change the mouth region
         pixel_values = pixel_values.to(device=device, dtype=weight_dtype)
         masks = masks.to(device=device, dtype=weight_dtype)
+        print("hahahaha",decoded_latents.device, pixel_values.device, masks.device)
         combined_pixel_values = decoded_latents * masks + pixel_values * (1 - masks)
         return combined_pixel_values
 
