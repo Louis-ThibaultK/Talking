@@ -302,8 +302,11 @@ class LipsyncPipeline(DiffusionPipeline):
             # face = (face * 255).to(torch.uint8)
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
             print("hahahaha3", face.shape)
+            start = time.perf_counter()
             out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
+            end = time.perf_counter
             out_frames.append(out_frame)
+        out_frames = out_frames.cpu().numpy()
         return np.stack(out_frames, axis=0) 
 
     @torch.no_grad()

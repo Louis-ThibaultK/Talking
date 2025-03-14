@@ -121,7 +121,7 @@ class AlignRestore(object):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # 1. 转换为 PyTorch Tensor
         # input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
-        face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
+        # face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
 
         # 2. 计算 upscaled 尺寸
         h, w, _ = input_img.shape
@@ -171,7 +171,7 @@ class AlignRestore(object):
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
 
         # 11. 类型转换
-        upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
+        upsample_img = (upsample_img.clamp(0, 1) * 255).byte()
 
         return upsample_img
 
