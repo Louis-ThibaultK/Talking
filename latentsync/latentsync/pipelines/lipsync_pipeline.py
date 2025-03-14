@@ -278,6 +278,7 @@ class LipsyncPipeline(DiffusionPipeline):
         return faces, video_frames, boxes, affine_matrices
 
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
+        start_time = time.perf_counter()
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -300,6 +301,8 @@ class LipsyncPipeline(DiffusionPipeline):
             out_frames.append(out_frame)
         
         out_frames = torch.stack(out_frames).cpu().numpy()
+        end_time = time.perf_counter()
+        print(f"后半段执行时间: {end_time - start_time:.6f} 秒")
         return out_frames
 
     @torch.no_grad()
