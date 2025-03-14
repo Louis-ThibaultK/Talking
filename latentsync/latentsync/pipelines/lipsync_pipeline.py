@@ -279,11 +279,15 @@ class LipsyncPipeline(DiffusionPipeline):
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
+        # print(video_frames[:2]) #list整数
+        # print(faces[0]) # tensor整数
+        # print(boxes[:2]) #list 整数 有正有负
+        # print(affine_matrices[:2])  # arrary 小数 有正有负
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
         # affine_matrices = torch.tensor(affine_matrices, dtype=torch.float32, device=device) # (n, h, w, 3)
-        boxes = boxes.to(device)
-        faces = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0
+        boxes = torch.tensor(boxes, dtype=torch.float32, device=device) 
+        faces = faces.to(dtype = torch.float32, device=device)/255.0
         print("hahahaha1", video_frames.dtype, faces.dtype, boxes.dtype)
         print("hahahaha2", video_frames.shape, faces.shape, boxes.shape)
 
