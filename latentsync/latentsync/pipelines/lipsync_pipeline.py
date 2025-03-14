@@ -279,19 +279,12 @@ class LipsyncPipeline(DiffusionPipeline):
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
-        # print(video_frames[:2]) #list整数
-        # print(faces[0]) # tensor整数
-        # print(boxes[:2]) #list 整数 有正有负
-        # print(affine_matrices[:2])  # arrary 小数 有正有负
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
-        # affine_matrices = torch.tensor(affine_matrices, dtype=torch.float32, device=device) # (n, h, w, 3)
         boxes = torch.tensor(boxes, dtype=torch.float32, device=device) 
         faces = faces.to(dtype = torch.float32, device=device)/255.0
-        print("hahahaha1", video_frames.dtype, faces.dtype, boxes.dtype)
-        print("hahahaha2", video_frames.shape, faces.shape, boxes.shape)
 
-        print(f"Restoring {len(faces)} faces...")
+        start = time.perf_counter()
         for index, face in enumerate(tqdm.tqdm(faces)):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
@@ -301,12 +294,12 @@ class LipsyncPipeline(DiffusionPipeline):
             face = (face / 2 + 0.5).clamp(0, 1)
             # face = (face * 255).to(torch.uint8)
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
-            print("hahahaha3", face.shape)
-            start = time.perf_counter()
+           
             out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
-            end = time.perf_counter()
-            print(f"hahahaha8: {end - start:.6f} 秒")
             out_frames.append(out_frame)
+        
+        end = time.perf_counter()
+        print(f"hahahaha8: {end - start:.6f} 秒")
         out_frames = torch.stack(out_frames).cpu().numpy()
         return out_frames
 
