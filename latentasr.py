@@ -25,6 +25,7 @@ class LatentsyncASR(BaseASR):
         if len(self.frames) <= self.stride_left_size + self.stride_right_size:
             return
         length = len(self.frames)
+        
         inputs = np.concatenate(self.frames) # [N * chunk] 
         whisper_feature = self.audio_processor.audio2feat(inputs)
         
