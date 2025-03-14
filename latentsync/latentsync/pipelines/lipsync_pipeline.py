@@ -285,7 +285,7 @@ class LipsyncPipeline(DiffusionPipeline):
         boxes = torch.tensor(boxes, dtype=torch.float32, device=device) 
         faces = faces.to(dtype = torch.float32, device=device)/255.0
 
-        for index, face in enumerate(tqdm.tqdm(faces)):
+        for index, face in enumerate(faces):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
             width = int(x2 - x1)

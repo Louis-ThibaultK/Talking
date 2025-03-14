@@ -30,6 +30,7 @@ class Audio2Feature:
         length = len(feature_array)
         selected_feature = []
         selected_idx = []
+        print("heihei:", feature_array.device)
 
         center_idx = int(vid_idx * 50 / fps)
         left_idx = center_idx - audio_feat_length[0] * 2
