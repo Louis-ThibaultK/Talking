@@ -120,7 +120,7 @@ class AlignRestore(object):
     def restore_img_gpu(self, input_img, face, affine_matrix):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # 1. 转换为 PyTorch Tensor
-        input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
+        # input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
         face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
 
         # 2. 计算 upscaled 尺寸

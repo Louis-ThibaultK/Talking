@@ -279,6 +279,14 @@ class LipsyncPipeline(DiffusionPipeline):
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
+        print("hahahaha1", video_frames.dtype, faces.dtype, boxes.dtype)
+        print("hahahaha2", video_frames.shape, faces.shape, boxes.shape)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
+        affine_matrices = torch.tensor(affine_matrices, dtype=torch.float32, device=device) # (n, h, w, 3)
+        boxes = boxes.to(device)
+        faces = faces.to(device)
+
         print(f"Restoring {len(faces)} faces...")
         for index, face in enumerate(tqdm.tqdm(faces)):
             x1, y1, x2, y2 = boxes[index]
@@ -287,7 +295,7 @@ class LipsyncPipeline(DiffusionPipeline):
             face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
             face = rearrange(face, "c h w -> h w c")
             face = (face / 2 + 0.5).clamp(0, 1)
-            face = (face * 255).to(torch.uint8).cpu().numpy()
+            face = (face * 255).to(torch.uint8)
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
             
             out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
