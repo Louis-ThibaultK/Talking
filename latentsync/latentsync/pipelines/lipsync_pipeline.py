@@ -278,6 +278,7 @@ class LipsyncPipeline(DiffusionPipeline):
         return faces, video_frames, boxes, affine_matrices
 
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
+        end = time.perf_counter()
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -286,6 +287,7 @@ class LipsyncPipeline(DiffusionPipeline):
         faces = faces.to(dtype = torch.float32, device=device)/255.0
 
         start = time.perf_counter()
+        print(f"hahahaha7: {start - end:.6f} 秒")
         for index, face in enumerate(tqdm.tqdm(faces)):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
