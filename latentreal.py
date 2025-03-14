@@ -165,7 +165,7 @@ class LatentReal(BaseReal):
 
             for audio_frame in audio_frames:
                 frame, type = audio_frame
-                frame = (frame * 32767).astype(np.int16)
+                frame = frame.astype(np.int16)
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())
                 new_frame.sample_rate=16000
