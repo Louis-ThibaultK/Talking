@@ -279,6 +279,10 @@ class LipsyncPipeline(DiffusionPipeline):
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
+        print(video_frames[:2])
+        print(faces[0])
+        print(boxes[:2])
+        print(affine_matrices[:2]) 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
         # affine_matrices = torch.tensor(affine_matrices, dtype=torch.float32, device=device) # (n, h, w, 3)
