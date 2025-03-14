@@ -113,7 +113,7 @@ class Pipeline(LipsyncPipeline):
         audio_sample_rate: int = 16000,
         num_inference_steps: int = 4,
         guidance_scale: float = 1.5,
-        weight_dtype: Optional[torch.dtype] = torch.bfloat16,
+        weight_dtype: Optional[torch.dtype] = torch.float16,
         eta: float = 0.0,
         mask: str = "fix_mask",
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
