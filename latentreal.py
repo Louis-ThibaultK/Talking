@@ -88,6 +88,9 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
         for _ in range(batch_size*2):
             frame,type = audio_out_queue.get()
             audio_frames.append((frame,type))
+            if type==0:
+                is_all_silence=False
+        
 
         t=time.perf_counter()
         split_faces = []
@@ -100,9 +103,13 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
             split_boxes.append(boxes[id])
             split_affine_matrices.append(affine_matrices[id])
             split_video_frames.append(original_video_frames[id])
-
+        
         split_faces = torch.stack(split_faces) 
         split_video_frames = np.array(split_video_frames)
+        if is_all_silence:
+            for i in range(batch_size):
+                res_frame_queue.put((split_video_frames, audio_frames[i*2:i*2+2]))
+                index = index + 1
         start_time = time.perf_counter()
         videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
         end_time = time.perf_counter()
@@ -197,7 +204,7 @@ class LatentReal(BaseReal):
    
             if video_track._queue.qsize()>=1.5*self.opt.batch_size:
                 print('sleep qsize=',video_track._queue.qsize())
-                time.sleep(0.04*video_track._queue.qsize()*0.8)
+                time.sleep(0.06*video_track._queue.qsize()*0.8)
    
         self.render_event.clear() #end infer process render
         print('latentreal thread stop')
