@@ -97,7 +97,6 @@ class AlignRestore(object):
         else:
             extra_offset = 0
         inverse_affine[:, 2] += extra_offset
-        print("hahahaha", inverse_affine, self.upscale_factor)
         inv_restored = cv2.warpAffine(face, inverse_affine, (w_up, h_up), flags=cv2.INTER_LANCZOS4)
         mask = np.ones((self.face_size[1], self.face_size[0]), dtype=np.float32)
         inv_mask = cv2.warpAffine(mask, inverse_affine, (w_up, h_up))
@@ -123,8 +122,8 @@ class AlignRestore(object):
     def restore_img_gpu(self, input_img, face, affine_matrix):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         # 1. 转换为 PyTorch Tensor
-        input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
-        face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
+        # input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
+        # face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
 
         # 2. 计算 upscaled 尺寸
         h, w, _ = input_img.shape
@@ -132,7 +131,6 @@ class AlignRestore(object):
 
         # 3. 上采样 input_img
         upsample_img = kornia.geometry.transform.resize(input_img.permute(2, 0, 1).unsqueeze(0), (h_up, w_up), interpolation='bicubic').squeeze(0).permute(1, 2, 0)
-        # upsample_img = F.interpolate(input_img.permute(2, 0, 1).unsqueeze(0), size=(h_up, w_up), mode="bilinear", align_corners=False).squeeze(0)
         # 4. 计算逆仿射矩阵
         inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)  # (2,3)
         inverse_affine *= self.upscale_factor
@@ -140,8 +138,6 @@ class AlignRestore(object):
             inverse_affine[:, 2] += 0.5 * self.upscale_factor
 
         # # 5. 修正 affine_grid 形状 (2,3) → (3,4)
-        # inverse_affine = F.pad(inverse_affine, (0, 1, 0, 1), value=0)  # 变成 (3,4)
-        # inverse_affine[2, 2] = 1  # 最后一行设置成 [0,0,1]
         inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,2,3)
 
         # 6. warpAffine (face)
@@ -176,9 +172,6 @@ class AlignRestore(object):
         erosion_kernel_center = torch.ones((erosion_radius, erosion_radius), dtype=torch.float32, device=device)
         inv_mask_center = kornia.morphology.erosion(inv_mask_erosion.unsqueeze(0).unsqueeze(0), erosion_kernel_center).squeeze(0).squeeze(0)
 
-        # kernel_size = max(1, erosion_radius + 1)
-        # inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
-        # 9. 计算融合 mask（模仿 Gaussian Blur）
         blur_size = w_edge * 2
         inv_soft_mask = kornia.filters.gaussian_blur2d(
             inv_mask_center.unsqueeze(0).unsqueeze(0),
@@ -186,13 +179,10 @@ class AlignRestore(object):
             sigma=(0.5, 0.5)
         ).squeeze(0).squeeze(0)
 
-        # inv_soft_mask = gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
-        # inv_soft_mask = F.gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
-
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-        
+
         # 11. 类型转换
         upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 

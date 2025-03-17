@@ -36,7 +36,7 @@ from ..whisper.audio2feature import Audio2Feature
 import tqdm
 import soundfile as sf
 import time
-import torch.nn.functional as F
+import kornia
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -280,27 +280,28 @@ class LipsyncPipeline(DiffusionPipeline):
     def restore_video(self, faces, video_frames, boxes, affine_matrices):
         video_frames = video_frames[: faces.shape[0]]
         out_frames = []
-        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        # video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
-        # boxes = torch.tensor(boxes, dtype=torch.float32, device=device) 
-        # faces = faces.to(dtype = torch.float32, device=device)/255.0
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
+        boxes = torch.tensor(boxes, dtype=torch.float32, device=device) 
+        faces = faces.to(dtype = torch.float32, device=device)/255.0
 
         for index, face in enumerate(faces):
-            x1, y1, x2, y2 = boxes[index]
-            height = int(y2 - y1)
-            width = int(x2 - x1)
-            face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
-            face = rearrange(face, "c h w -> h w c")
-            face = (face / 2 + 0.5).clamp(0, 1)
-            face = (face * 255).to(torch.uint8).cpu().numpy()
-            
             # x1, y1, x2, y2 = boxes[index]
             # height = int(y2 - y1)
             # width = int(x2 - x1)
-            # F.interpolate(face.unsqueeze(0), size=(height, width), mode="bilinear", align_corners=False).squeeze(0)
-            # # face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
+            # face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
             # face = rearrange(face, "c h w -> h w c")
             # face = (face / 2 + 0.5).clamp(0, 1)
+            # face = (face * 255).to(torch.uint8).cpu().numpy()
+            
+            x1, y1, x2, y2 = boxes[index]
+            height = int(y2 - y1)
+            width = int(x2 - x1)
+            face = kornia.geometry.transform.resize(face.unsqueeze(0), (height, width), interpolation = 'bicubic').squeeze(0)
+            # face = F.interpolate(face.unsqueeze(0), size=(height, width), mode="bilinear", align_corners=False).squeeze(0)
+            # face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
+            face = rearrange(face, "c h w -> h w c")
+            face = (face / 2 + 0.5).clamp(0, 1)
             # face = (face * 255).to(torch.uint8)
             # face = cv2.resize(face, (width, height), interpolation=cv2.INTER_LANCZOS4)
            
