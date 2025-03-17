@@ -29,9 +29,9 @@ from av import AudioFrame
 import fractions
 import numpy as np
 
-AUDIO_PTIME = 0.050  # 20ms audio packetization
+AUDIO_PTIME = 0.040  # 20ms audio packetization
 VIDEO_CLOCK_RATE = 90000
-VIDEO_PTIME = 1 / 10  # 30fps
+VIDEO_PTIME = 1 / 13  # 30fps
 VIDEO_TIME_BASE = fractions.Fraction(1, VIDEO_CLOCK_RATE)
 SAMPLE_RATE = 16000
 AUDIO_TIME_BASE = fractions.Fraction(1, SAMPLE_RATE)
