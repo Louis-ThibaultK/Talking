@@ -141,7 +141,7 @@ class AlignRestore(object):
         # inverse_affine = F.pad(inverse_affine, (0, 1, 0, 1), value=0)  # 变成 (3,4)
         # inverse_affine[2, 2] = 1  # 最后一行设置成 [0,0,1]
         inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,2,3)
-
+        print("hahahaha", inverse_affine)
         # 6. warpAffine (face)
         face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
         grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
@@ -171,7 +171,7 @@ class AlignRestore(object):
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-        upsample_img = face1
+        upsample_img = inv_restored
         # 11. 类型转换
         upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
