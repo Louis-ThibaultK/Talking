@@ -162,34 +162,37 @@ class AlignRestore(object):
             mode='bilinear',
             align_corners=True
         ).squeeze(0).squeeze(0)
-        
-        # mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,H,W)
-        # mask_grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
-        # inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
         # 8. PyTorch 形态学腐蚀（近似）
         erosion_kernel_size = int(2 * self.upscale_factor)
         erosion_kernel = torch.ones((erosion_kernel_size, erosion_kernel_size), dtype=torch.float32, device=device)
         inv_mask_erosion = kornia.morphology.erosion(inv_mask.unsqueeze(0).unsqueeze(0), erosion_kernel).squeeze(0).squeeze(0)
 
-        # kernel_size = max(1, int(2 * self.upscale_factor) + 1)
-        # inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
         total_face_area = torch.sum(inv_mask_erosion)
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
         erosion_radius = w_edge * 2
-        
-        kernel_size = max(1, erosion_radius + 1)
-        inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
+
+        erosion_kernel_center = torch.ones((erosion_radius, erosion_radius), dtype=torch.float32, device=device)
+        inv_mask_center = kornia.morphology.erosion(inv_mask_erosion.unsqueeze(0).unsqueeze(0), erosion_kernel_center).squeeze(0).squeeze(0)
+
+        # kernel_size = max(1, erosion_radius + 1)
+        # inv_mask_center = F.avg_pool2d(inv_mask_erosion.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         # 9. 计算融合 mask（模仿 Gaussian Blur）
-        blur_size = kernel_size * 2
-        inv_soft_mask = gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
+        blur_size = w_edge * 2
+        inv_soft_mask = kornia.filters.gaussian_blur2d(
+            inv_mask_center.unsqueeze(0).unsqueeze(0),
+            kernel_size=(blur_size + 1, blur_size + 1),
+            sigma=(0.5, 0.5)
+        ).squeeze(0).squeeze(0)
+
+        # inv_soft_mask = gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
         # inv_soft_mask = F.gaussian_blur(inv_mask_center.unsqueeze(0).unsqueeze(0), (blur_size + 1, blur_size + 1)).squeeze(0).squeeze(0)
 
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-        upsample_img = pasted_face
+        
         # 11. 类型转换
         upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
