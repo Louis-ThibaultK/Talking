@@ -165,7 +165,7 @@ class AlignRestore(object):
         inv_mask_erosion = kornia.morphology.erosion(inv_mask.unsqueeze(0).unsqueeze(0), erosion_kernel).squeeze(0).squeeze(0)
 
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
-        total_face_area = torch.sum(inv_mask_erosion)
+        total_face_area = torch.sum(inv_mask_erosion.to(torch.float32))
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
         erosion_radius = w_edge * 2
 
