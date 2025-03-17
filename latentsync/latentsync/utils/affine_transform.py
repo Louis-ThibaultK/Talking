@@ -132,7 +132,7 @@ class AlignRestore(object):
         # 3. 上采样 input_img
         upsample_img = kornia.geometry.transform.resize(input_img.permute(2, 0, 1).unsqueeze(0), (h_up, w_up), interpolation='bicubic').squeeze(0).permute(1, 2, 0)
         # 4. 计算逆仿射矩阵
-        inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)  # (2,3)
+        inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float16, device=device)  # (2,3)
         inverse_affine *= self.upscale_factor
         if self.upscale_factor > 1:
             inverse_affine[:, 2] += 0.5 * self.upscale_factor
@@ -150,7 +150,7 @@ class AlignRestore(object):
         ).squeeze(0).permute(1, 2, 0)
 
         # 7. 生成 mask 并 warp
-        mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
+        mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float16, device=device)
         inv_mask = kornia.geometry.transform.warp_affine(
             mask.unsqueeze(0).unsqueeze(0),  # (1, 1, H, W)
             inverse_affine,
@@ -161,7 +161,7 @@ class AlignRestore(object):
 
         # 8. PyTorch 形态学腐蚀（近似）
         erosion_kernel_size = int(2 * self.upscale_factor)
-        erosion_kernel = torch.ones((erosion_kernel_size, erosion_kernel_size), dtype=torch.float32, device=device)
+        erosion_kernel = torch.ones((erosion_kernel_size, erosion_kernel_size), dtype=torch.float16, device=device)
         inv_mask_erosion = kornia.morphology.erosion(inv_mask.unsqueeze(0).unsqueeze(0), erosion_kernel).squeeze(0).squeeze(0)
 
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
@@ -169,7 +169,7 @@ class AlignRestore(object):
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
         erosion_radius = w_edge * 2
 
-        erosion_kernel_center = torch.ones((erosion_radius, erosion_radius), dtype=torch.float32, device=device)
+        erosion_kernel_center = torch.ones((erosion_radius, erosion_radius), dtype=torch.float16, device=device)
         inv_mask_center = kornia.morphology.erosion(inv_mask_erosion.unsqueeze(0).unsqueeze(0), erosion_kernel_center).squeeze(0).squeeze(0)
 
         blur_size = w_edge * 2
