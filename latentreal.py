@@ -108,7 +108,7 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
         split_video_frames = np.array(split_video_frames)
         if is_all_silence:
             for i in range(batch_size):
-                res_frame_queue.put((split_video_frames, audio_frames[i*2:i*2+2]))
+                res_frame_queue.put((split_video_frames.numpy(), audio_frames[i*2:i*2+2]))
                 index = index + 1
         start_time = time.perf_counter()
         videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
