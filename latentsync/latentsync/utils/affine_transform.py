@@ -110,7 +110,8 @@ class AlignRestore(object):
         blur_size = w_edge * 2
         inv_soft_mask = cv2.GaussianBlur(inv_mask_center, (blur_size + 1, blur_size + 1), 0)
         inv_soft_mask = inv_soft_mask[:, :, None]
-        upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
+        # upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
+        upsample_img = pasted_face
         if np.max(upsample_img) > 256:
             upsample_img = upsample_img.astype(np.uint16)
         else:
