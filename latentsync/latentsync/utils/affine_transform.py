@@ -123,6 +123,7 @@ class AlignRestore(object):
         # 1. 转换为 PyTorch Tensor
         input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
         face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
+        face1 = face
 
         # 2. 计算 upscaled 尺寸
         h, w, _ = input_img.shape
@@ -170,7 +171,7 @@ class AlignRestore(object):
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-        upsample_img = inv_restored
+        upsample_img = face1
         # 11. 类型转换
         upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
