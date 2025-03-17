@@ -184,7 +184,7 @@ class AlignRestore(object):
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
 
         # 11. 类型转换
-        upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
+        upsample_img = (upsample_img.clamp(0, 1) * 255).byte()
 
         return upsample_img
 

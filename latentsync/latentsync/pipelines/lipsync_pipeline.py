@@ -284,15 +284,16 @@ class LipsyncPipeline(DiffusionPipeline):
         video_frames = torch.tensor(video_frames, dtype=torch.float32, device=device) / 255.0  # (N, H, W, 3)
         # boxes = torch.tensor(boxes, dtype=torch.float32, device=device) 
         faces = faces.to(dtype = torch.float32, device=device)/255.0
+        faces = (faces / 2 + 0.5).clamp(0, 1)
 
         for index, face in enumerate(faces):
             x1, y1, x2, y2 = boxes[index]
             height = int(y2 - y1)
             width = int(x2 - x1)
-            face = kornia.geometry.transform.resize(face.unsqueeze(0), (height, width), interpolation = 'bicubic').squeeze(0)
+            face = kornia.geometry.transform.resize(face.unsqueeze(0), (height, width), interpolation = 'bilinear').squeeze(0)
             # face = torchvision.transforms.functional.resize(face, size=(height, width), antialias=True)
             face = rearrange(face, "c h w -> h w c")
-            face = (face / 2 + 0.5).clamp(0, 1)
+            # face = (face / 2 + 0.5).clamp(0, 1)
             # face = (face * 255).to(torch.uint8).cpu().numpy()
             
             # x1, y1, x2, y2 = boxes[index]
@@ -309,7 +310,7 @@ class LipsyncPipeline(DiffusionPipeline):
             out_frame = self.image_processor.restorer.restore_img_gpu(video_frames[index], face, affine_matrices[index])
             out_frames.append(out_frame)
         
-        # out_frames = torch.stack(out_frames).cpu().numpy()
+        out_frames = torch.stack(out_frames).cpu().numpy()
         return out_frames
 
     @torch.no_grad()
