@@ -5,6 +5,7 @@ import cv2
 import torch
 import torch.nn.functional as F
 from torchvision.transforms.functional import gaussian_blur
+import kornia
 
 
 def transformation_from_points(points1, points0, smooth=True, p_bias=None):
@@ -124,14 +125,14 @@ class AlignRestore(object):
         # 1. 转换为 PyTorch Tensor
         input_img = torch.tensor(input_img, dtype=torch.float32, device=device) / 255.0  # (H, W, 3)
         face = torch.tensor(face, dtype=torch.float32, device=device) / 255.0  # (h, w, 3)
-        face1 = face
 
         # 2. 计算 upscaled 尺寸
         h, w, _ = input_img.shape
         h_up, w_up = int(h * self.upscale_factor), int(w * self.upscale_factor)
 
         # 3. 上采样 input_img
-        upsample_img = F.interpolate(input_img.permute(2, 0, 1).unsqueeze(0), size=(h_up, w_up), mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
+        upsample_img = kornia.geometry.transform.resize(input_img.permute(2, 0, 1).unsqueeze(0), (h_up, w_up), interpolation='bicubic').squeeze(0).permute(1, 2, 0)
+        # upsample_img = F.interpolate(input_img.permute(2, 0, 1).unsqueeze(0), size=(h_up, w_up), mode="bilinear", align_corners=False).squeeze(0)
         # 4. 计算逆仿射矩阵
         inverse_affine = torch.tensor(cv2.invertAffineTransform(affine_matrix), dtype=torch.float32, device=device)  # (2,3)
         inverse_affine *= self.upscale_factor
@@ -144,9 +145,16 @@ class AlignRestore(object):
         inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,2,3)
         print("hahahaha", inverse_affine)
         # 6. warpAffine (face)
-        face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
-        grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
-        inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
+        inv_restored = kornia.geometry.transform.warp_affine(
+            face.permute(2, 0, 1).unsqueeze(0),
+            inverse_affine,
+            dsize=(h_up, w_up),
+            mode='bicubic',
+            align_corners=True
+        ).squeeze(0)
+        # face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
+        # grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
+        # inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
 
         # 7. 生成 mask 并 warp
         mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
