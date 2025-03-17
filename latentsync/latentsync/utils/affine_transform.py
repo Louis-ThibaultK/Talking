@@ -96,6 +96,7 @@ class AlignRestore(object):
         else:
             extra_offset = 0
         inverse_affine[:, 2] += extra_offset
+        print("hahahaha", inverse_affine, self.upscale_factor)
         inv_restored = cv2.warpAffine(face, inverse_affine, (w_up, h_up), flags=cv2.INTER_LANCZOS4)
         mask = np.ones((self.face_size[1], self.face_size[0]), dtype=np.float32)
         inv_mask = cv2.warpAffine(mask, inverse_affine, (w_up, h_up))
