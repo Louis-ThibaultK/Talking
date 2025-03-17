@@ -143,7 +143,7 @@ class AlignRestore(object):
         # inverse_affine = F.pad(inverse_affine, (0, 1, 0, 1), value=0)  # 变成 (3,4)
         # inverse_affine[2, 2] = 1  # 最后一行设置成 [0,0,1]
         inverse_affine = inverse_affine.unsqueeze(0)  # 变成 (1,2,3)
-        print("hahahaha", inverse_affine)
+
         # 6. warpAffine (face)
         inv_restored = kornia.geometry.transform.warp_affine(
             face.permute(2, 0, 1).unsqueeze(0),
@@ -151,20 +151,29 @@ class AlignRestore(object):
             dsize=(h_up, w_up),
             mode='bicubic',
             align_corners=True
-        ).squeeze(0)
-        # face = face.permute(2, 0, 1).unsqueeze(0)  # (1,H,W)
-        # grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
-        # inv_restored = F.grid_sample(face, grid, mode="bilinear", align_corners=False).squeeze(0).permute(1, 2, 0)
+        ).squeeze(0).permute(1, 2, 0)
 
         # 7. 生成 mask 并 warp
         mask = torch.ones((self.face_size[1], self.face_size[0]), dtype=torch.float32, device=device)
-        mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,H,W)
-        mask_grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
-        inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
+        inv_mask = kornia.geometry.transform.warp_affine(
+            mask.unsqueeze(0).unsqueeze(0),  # (1, 1, H, W)
+            inverse_affine,
+            dsize=(h_up, w_up),
+            mode='bilinear',
+            align_corners=True
+        ).squeeze(0).squeeze(0)
+        
+        # mask = mask.unsqueeze(0).unsqueeze(0)  # 变成 (1,H,W)
+        # mask_grid = F.affine_grid(inverse_affine, torch.Size((1, 3, h_up, w_up)), align_corners=False)
+        # inv_mask = F.grid_sample(mask, mask_grid, mode="bilinear", align_corners=False).squeeze(0).squeeze(0)
 
         # 8. PyTorch 形态学腐蚀（近似）
-        kernel_size = max(1, int(2 * self.upscale_factor) + 1)
-        inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
+        erosion_kernel_size = int(2 * self.upscale_factor)
+        erosion_kernel = torch.ones((erosion_kernel_size, erosion_kernel_size), dtype=torch.float32, device=device)
+        inv_mask_erosion = kornia.morphology.erosion(inv_mask.unsqueeze(0).unsqueeze(0), erosion_kernel).squeeze(0).squeeze(0)
+
+        # kernel_size = max(1, int(2 * self.upscale_factor) + 1)
+        # inv_mask_erosion = F.avg_pool2d(inv_mask.unsqueeze(0).unsqueeze(0), kernel_size, stride=1, padding=kernel_size//2).squeeze(0).squeeze(0)
         pasted_face = inv_mask_erosion.unsqueeze(-1) * inv_restored
         total_face_area = torch.sum(inv_mask_erosion)
         w_edge = int(torch.sqrt(total_face_area).item()) // 20
@@ -180,7 +189,7 @@ class AlignRestore(object):
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-        upsample_img = inv_restored
+        upsample_img = pasted_face
         # 11. 类型转换
         upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
