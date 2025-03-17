@@ -111,7 +111,7 @@ class AlignRestore(object):
         inv_soft_mask = cv2.GaussianBlur(inv_mask_center, (blur_size + 1, blur_size + 1), 0)
         inv_soft_mask = inv_soft_mask[:, :, None]
         # upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-        upsample_img = pasted_face
+        upsample_img = inv_restored
         if np.max(upsample_img) > 256:
             upsample_img = upsample_img.astype(np.uint16)
         else:
@@ -170,7 +170,7 @@ class AlignRestore(object):
         # 10. 计算最终融合
         inv_soft_mask = inv_soft_mask.unsqueeze(-1)  # (H, W, 1)
         upsample_img = inv_soft_mask * pasted_face + (1 - inv_soft_mask) * upsample_img
-
+        upsample_img = inv_restored
         # 11. 类型转换
         upsample_img = (upsample_img.clamp(0, 1) * 255).byte().cpu().numpy()
 
