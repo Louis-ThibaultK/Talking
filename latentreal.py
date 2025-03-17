@@ -110,6 +110,7 @@ def inference(pipeline: Pipeline, faces, original_video_frames, boxes, affine_ma
             for i in range(batch_size):
                 res_frame_queue.put((split_video_frames[i], audio_frames[i*2:i*2+2]))
                 index = index + 1
+            return
         start_time = time.perf_counter()
         videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
         end_time = time.perf_counter()
