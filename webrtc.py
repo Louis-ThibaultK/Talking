@@ -176,14 +176,14 @@ class PlayerStreamTrack(MediaStreamTrack):
             self._player = None
 
 
-def player_worker_thread(
+async def player_worker_thread(
     quit_event,
     loop,
     container,
     audio_track,
     video_track
 ):
-    container.render(quit_event,loop,audio_track,video_track)
+    await container.render(quit_event,loop,audio_track,video_track)
 
 def save_audio_to_file(frames, filename):
     with wave.open(filename, 'wb') as wf:
