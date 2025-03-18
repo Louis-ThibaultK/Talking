@@ -46,7 +46,28 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # 默认 INFO 级别
 # logging.getLogger("aiortc.rtcrtpreceiver").setLevel(logging.DEBUG)  # 打印 RTP 接收日志
+class AudioBuffer:
+    """
+    �~F�~N��~T��~H��~Z~D�~_��~Q�~U��~M��~]�~X�~H��~S�~F��~L��~@~B
+    """
+    def __init__(self):
+        self.buffer = bytearray()
+        self.num_channels = None
+        self.sample_rate = None
+        self.sample_width = None
 
+    async def write(self, data, num_channels, sample_rate, sample_width):
+        if self.num_channels is None:
+            self.num_channels = num_channels
+        if self.sample_rate is None:
+            self.sample_rate = sample_rate
+        if self.sample_width is None:
+            self.sample_width = sample_width
+
+        self.buffer.extend(data)
+
+    def get_data(self):
+        return self.buffer
 class PlayerStreamTrack(MediaStreamTrack):
     """
     A video track that returns an animated flag.
@@ -62,6 +83,8 @@ class PlayerStreamTrack(MediaStreamTrack):
             self.framecount = 0
             self.lasttime = time.perf_counter()
             self.totaltime = 0
+        else:
+            self.buffer = AudioBuffer()
     
     _start: float
     _timestamp: int
@@ -126,8 +149,12 @@ class PlayerStreamTrack(MediaStreamTrack):
         #     else:
         #         frame = await self._queue.get()
         frame = await self._queue.get()
+        if self.kind == 'audio':
+            data = frame.to_ndarray().tobytes()
+            await self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
-        # frame.pts = pts
+
+        frame.pts = pts
         frame.time_base = time_base
         if frame is None:
             self.stop()
@@ -158,6 +185,14 @@ def player_worker_thread(
 ):
     container.render(quit_event,loop,audio_track,video_track)
 
+def save_audio_to_file(frames, filename):
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(frames.num_channels)  # Mono
+        wf.setsampwidth(frames.sample_width)  # 16-bit PCM
+        wf.setframerate(frames.sample_rate)  # Sample rate
+        # for frame in frames:
+        wf.writeframes(frames.get_data())
+        print(f"Saved {len(frames.get_data())} audio frames to {filename}.")
 
 class HumanPlayer:
 
@@ -215,6 +250,9 @@ class HumanPlayer:
             self.__thread.start()
 
     def _stop(self, track: PlayerStreamTrack) -> None:
+        if track == self.__audio:
+            print("save push wav")
+            save_audio_to_file(self.__audio.buffer, "push.wav")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:
