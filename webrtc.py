@@ -248,7 +248,7 @@ class HumanPlayer:
             #     ),
             # )
             # self.__thread.start()
-            self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, self.__container, self.__audio, self.__video))
+            self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, asyncio.get_event_loop(), self.__container, self.__audio, self.__video))
 
     def _stop(self, track: PlayerStreamTrack) -> None:
         if track == self.__audio:
