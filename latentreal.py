@@ -211,7 +211,10 @@ class LatentReal(BaseReal):
 
     def process_audio_frame(self, quit_event, loop = None, audio_track = None):
         while not quit_event.is_set():
-            audio_frame = self.audio_frame_queue.get(block=True, timeout=0.02)
+            try:
+                audio_frame = self.audio_frame_queue.get(block=True, timeout=0.02)
+            except queue.Empty:
+                continue
             frame, type = audio_frame
             frame = frame.astype(np.int16)
             
