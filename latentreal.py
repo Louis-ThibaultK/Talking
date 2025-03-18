@@ -206,6 +206,8 @@ class LatentReal(BaseReal):
             if video_track._queue.qsize()>=1.5*self.opt.batch_size:
                 print('sleep qsize=',video_track._queue.qsize())
                 time.sleep(0.06*video_track._queue.qsize()*0.8)
+                
+            time.sleep(0.6)
    
         self.render_event.clear() #end infer process render
         print('latentreal thread stop')
