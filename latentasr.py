@@ -23,6 +23,7 @@ class LatentsyncASR(BaseASR):
             self.output_queue.put((audio_frame,type))
         
         if len(self.frames) <= self.stride_left_size + self.stride_right_size:
+            print("hahaha1")
             return
         length = len(self.frames)
         
