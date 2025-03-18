@@ -31,6 +31,7 @@ class LatentsyncASR(BaseASR):
         whisper_feature = self.audio_processor.audio2feat(inputs)
         
         whisper_chunks = self.audio_processor.feature2chunks(feature_array=whisper_feature,fps=self.fps/2 )
+        print("hahaha3", len(self.frames), len(whisper_feature), len(whisper_chunks))
         #print(f"whisper_chunks len:{len(whisper_chunks)},self.audio_feats len:{len(self.audio_feats)},self.output_queue len:{self.output_queue.qsize()}")
         #self.audio_feats = self.audio_feats[-(self.stride_left_size + self.stride_right_size):]
         self.feat_queue.put(whisper_chunks)

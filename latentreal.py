@@ -208,7 +208,7 @@ class LatentReal(BaseReal):
                 print('sleep qsize=',video_track._queue.qsize())
                 time.sleep(0.06*video_track._queue.qsize()*0.8)
             print("video_track buffer length:", video_track._queue.qsize())
-            # time.sleep(0.6)
+            time.sleep(0.6)
    
         self.render_event.clear() #end infer process render
         print('latentreal thread stop')
