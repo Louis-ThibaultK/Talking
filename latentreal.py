@@ -51,14 +51,6 @@ def warm_up(pe: Pipeline,  height: Optional[int] = None,
                 width: Optional[int] = None,):
     pe.warm_up(height, width)
 
-def __mirror_index(size, index):
-    #size = len(self.coord_list_cycle)
-    turn = index // size
-    res = index % size
-    if turn % 2 == 0:
-        return res
-    else:
-        return size - res - 1 
 
 @torch.no_grad()
 def resample_pcm_scipy(pcm_chunks, input_rate=16000, output_rate=48000, target_chunks=50, target_size=960):
@@ -140,7 +132,7 @@ class LatentReal(BaseReal):
             split_affine_matrices = []
             split_video_frames = []
             for i in range(batch_size):
-                id = __mirror_index(length, self.index + i)
+                id = self.mirror_index(length, self.index + i)
                 split_faces.append(faces[id])
                 split_boxes.append(boxes[id])
                 split_affine_matrices.append(affine_matrices[id])
@@ -183,7 +175,7 @@ class LatentReal(BaseReal):
                 res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.1)
             except queue.Empty:
                 length = len(self.original_video_frames)
-                id = __mirror_index(length, self.index) 
+                id = self.mirror_index(length, self.index) 
                 res_frame = self.original_video_frames[id]
 
             image = res_frame #(outputs['image'] * 255).astype(np.uint8)
