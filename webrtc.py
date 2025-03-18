@@ -127,7 +127,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         #         frame = await self._queue.get()
         frame = await self._queue.get()
         pts, time_base = await self.next_timestamp()
-        frame.pts = pts
+        # frame.pts = pts
         frame.time_base = time_base
         if frame is None:
             self.stop()
