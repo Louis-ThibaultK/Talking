@@ -142,7 +142,7 @@ async def offer(request):
                 frame = await track.recv()
                 # 这里可以处理音频数据，例如进行转换、保存等
                 pcm_frame, sample_rate = nerfreal.asr.channel_switch(frame)
-                nerfreal.asr.put_frame(pcm_frame, sample_rate)
+                await nerfreal.asr.put_frame(pcm_frame, sample_rate)
 
     pull_pc.on("track", on_track)
     
@@ -369,7 +369,7 @@ if __name__ == '__main__':
     parser.add_argument('--smooth_path_window', type=int, default=7, help="smoothing window size")
 
     # audio FPS
-    parser.add_argument('--fps', type=int, default=25)
+    parser.add_argument('--fps', type=int, default=50)
     # sliding window left-middle-right length (unit: 40ms)
     parser.add_argument('-l', type=int, default=8)
     parser.add_argument('-m', type=int, default=8)

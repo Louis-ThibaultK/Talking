@@ -236,18 +236,19 @@ class HumanPlayer:
         if self.__thread is None:
             self.__log_debug("Starting worker thread")
             self.__thread_quit = threading.Event()
-            self.__thread = threading.Thread(
-                name="media-player",
-                target=player_worker_thread,
-                args=(
-                    self.__thread_quit,
-                    asyncio.get_event_loop(),
-                    self.__container,
-                    self.__audio,
-                    self.__video                   
-                ),
-            )
-            self.__thread.start()
+            # self.__thread = threading.Thread(
+            #     name="media-player",
+            #     target=player_worker_thread,
+            #     args=(
+            #         self.__thread_quit,
+            #         asyncio.get_event_loop(),
+            #         self.__container,
+            #         self.__audio,
+            #         self.__video                   
+            #     ),
+            # )
+            # self.__thread.start()
+            self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, self.__container, self.__audio, self.__video))
 
     def _stop(self, track: PlayerStreamTrack) -> None:
         if track == self.__audio:
@@ -258,7 +259,8 @@ class HumanPlayer:
         if not self.__started and self.__thread is not None:
             self.__log_debug("Stopping worker thread")
             self.__thread_quit.set()
-            self.__thread.join()
+            # self.__thread.join()
+            self.__thread.cancel()  # 取消任务
             self.__thread = None
 
         if not self.__started and self.__container is not None:

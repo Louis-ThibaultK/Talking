@@ -25,6 +25,7 @@ import opuslib
 from io import BytesIO
 import soundfile as sf
 import resampy
+import asyncio
 
 
 class BaseASR:
@@ -35,7 +36,7 @@ class BaseASR:
         self.fps = opt.fps # 20 ms per frame
         self.sample_rate = 16000
         self.chunk = self.sample_rate // self.fps # 320 samples per chunk (20ms * 16000 / 1000)
-        self.queue = Queue()
+        self.queue = asyncio.Queue()
         self.output_queue = mp.Queue()
 
         self.batch_size = opt.batch_size
@@ -51,21 +52,22 @@ class BaseASR:
     def flush_talk(self):
         self.queue.queue.clear()
 
-    def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
-        self.queue.put(audio_chunk)
+    async def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
+        await self.queue.put(audio_chunk)
 
-    def get_audio_frame(self):        
-        try:
-            frame = self.queue.get(block=True,timeout=0.02)
-            type = 0
+    async def get_audio_frame(self):        
+        # try:
+        # frame = self.queue.get(block=True,timeout=0.02)
+        frame = await self.queue.get()
+        type = 0
             #print(f'[INFO] get frame {frame.shape}')
-        except queue.Empty:
-            if self.parent and self.parent.curr_state>1: #播放自定义音频
-                frame = self.parent.get_audio_stream(self.parent.curr_state)
-                type = self.parent.curr_state
-            else:
-                frame = np.zeros(self.chunk, dtype=np.float32)
-                type = 1
+        # except queue.Empty:
+        #     if self.parent and self.parent.curr_state>1: #播放自定义音频
+        #         frame = self.parent.get_audio_stream(self.parent.curr_state)
+        #         type = self.parent.curr_state
+        #     else:
+        #         frame = np.zeros(self.chunk, dtype=np.float32)
+        #         type = 1
 
         return frame,type 
 
