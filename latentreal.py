@@ -182,7 +182,7 @@ class LatentReal(BaseReal):
                 asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
                 self.record_audio_data(frame)
                 #self.recordq_audio.put(new_frame)
-        print('musereal process_frames thread stop') 
+        print('latentreal process_frames thread stop') 
             
     def render(self,quit_event,loop=None,audio_track=None,video_track=None):
         #if self.opt.asr:
@@ -206,8 +206,8 @@ class LatentReal(BaseReal):
             if video_track._queue.qsize()>=1.5*self.opt.batch_size:
                 print('sleep qsize=',video_track._queue.qsize())
                 time.sleep(0.06*video_track._queue.qsize()*0.8)
-                
-            time.sleep(0.6)
+            print("video_track buffer length:", video_track._queue.qsize())
+            # time.sleep(0.6)
    
         self.render_event.clear() #end infer process render
         print('latentreal thread stop')

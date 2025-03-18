@@ -372,7 +372,7 @@ if __name__ == '__main__':
     parser.add_argument('--fps', type=int, default=25)
     # sliding window left-middle-right length (unit: 40ms)
     parser.add_argument('-l', type=int, default=4)
-    parser.add_argument('-m', type=int, default=8)
+    parser.add_argument('-m', type=int, default=4)
     parser.add_argument('-r', type=int, default=4)
 
     parser.add_argument('--fullbody', action='store_true', help="fullbody human")
