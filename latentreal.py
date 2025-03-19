@@ -35,7 +35,8 @@ from basereal import BaseReal
 from latentsync.pipeline import load_all_model, _load_avatar, Pipeline
 from typing import Optional
 from latentasr import LatentsyncASR
-from scipy.signal import resample_poly
+# from scipy.signal import resample
+import resampy
 
 def load_model():
     # load model weights
@@ -61,7 +62,8 @@ def resample_pcm_scipy(pcm_chunks, input_rate=16000, output_rate=48000, target_c
     pcm_data = np.concatenate(pcm_chunks, axis=0)  # shape = (10240,)
 
     # Step 2: 进行 16kHz → 48kHz 重采样
-    resampled_data = resample_poly(pcm_data, target_chunks * target_size, up=3, down=1)  # shape = (48000,)
+    resampled_data = resampy.resample(x=pcm_data, sr_orig=input_rate*32, sr_new=target_chunks * target_size)
+    # resampled_data = resample(pcm_data, target_chunks * target_size)  # shape = (48000,)
 
     stereo_data = np.stack([resampled_data, resampled_data], axis=1) 
     # Step 3: 重新分割成 50 个数据包，每个包长 960
