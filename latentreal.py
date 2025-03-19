@@ -222,8 +222,15 @@ class LatentReal(BaseReal):
             self.record_audio_data(frame)
             #self.recordq_audio.put(new_frame)
 
+    async def run_step(self, quit_event):
+        while not quit_event.is_set(): #todo
+            # update texture every frame
+            # audio stream thread...
+            t = time.perf_counter()
+            await self.asr.run_step() 
+        self.render_event.clear() #end infer process render 
 
-    async def render(self,quit_event,loop=None,audio_track=None,video_track=None):
+    def render(self,quit_event,loop=None,audio_track=None,video_track=None):
         #if self.opt.asr:
         #     self.asr.warm_up()
 
@@ -236,12 +243,17 @@ class LatentReal(BaseReal):
         Thread(target=self.inference, args=(self.pe, self.faces, self.original_video_frames, self.boxes, self.affine_matrices, self.render_event,
                                        self.batch_size, self.asr.feat_queue, self.asr.output_queue, self.res_frame_queue, self.audio_frame_queue)).start() #mp.Process
 
+        lp = asyncio.new_event_loop()
+        asyncio.set_event_loop(lp)
+        lp.run_until_complete(self.run_step(quit_event))
+        lp.run_forever()
+
         #_totalframe=0
-        while not quit_event.is_set(): #todo
+        # while not quit_event.is_set(): #todo
             # update texture every frame
             # audio stream thread...
-            t = time.perf_counter()
-            await self.asr.run_step()
+            # t = time.perf_counter()
+            # await self.asr.run_step()
    
             # if video_track._queue.qsize()>=1.5*self.opt.batch_size:
             #     print('sleep qsize=',video_track._queue.qsize())
@@ -249,6 +261,6 @@ class LatentReal(BaseReal):
             # print("video_track buffer length:", video_track._queue.qsize())
             # time.sleep(0.1)
    
-        self.render_event.clear() #end infer process render
-        print('latentreal thread stop')
+        # self.render_event.clear() #end infer process render
+        # print('latentreal thread stop')
             

@@ -184,7 +184,7 @@ async def player_worker_thread(
     audio_track,
     video_track
 ):
-    await container.render(quit_event,loop,audio_track,video_track)
+    container.render(quit_event,loop,audio_track,video_track)
 
 def save_audio_to_file(frames, filename):
     with wave.open(filename, 'wb') as wf:
@@ -237,19 +237,19 @@ class HumanPlayer:
         if self.__thread is None:
             self.__log_debug("Starting worker thread")
             self.__thread_quit = threading.Event()
-            # self.__thread = threading.Thread(
-            #     name="media-player",
-            #     target=player_worker_thread,
-            #     args=(
-            #         self.__thread_quit,
-            #         asyncio.get_event_loop(),
-            #         self.__container,
-            #         self.__audio,
-            #         self.__video                   
-            #     ),
-            # )
-            # self.__thread.start()
-            self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, asyncio.get_event_loop(), self.__container, self.__audio, self.__video))
+            self.__thread = threading.Thread(
+                name="media-player",
+                target=player_worker_thread,
+                args=(
+                    self.__thread_quit,
+                    asyncio.get_event_loop(),
+                    self.__container,
+                    self.__audio,
+                    self.__video                   
+                ),
+            )
+            self.__thread.start()
+            # self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, asyncio.get_event_loop(), self.__container, self.__audio, self.__video))
 
     def _stop(self, track: PlayerStreamTrack) -> None:
         if track == self.__audio:
