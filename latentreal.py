@@ -104,7 +104,7 @@ class LatentReal(BaseReal):
         print('start inference')
         while render_event.is_set():
             try:
-                whisper_chunks = audio_feat_queue.get(block=True, timeout=1)
+                whisper_chunks = audio_feat_queue.get(block=True, timeout=0.5)
             except queue.Empty:
                 continue
             is_all_silence=True
@@ -117,6 +117,7 @@ class LatentReal(BaseReal):
 
             audio_slice = [frame for frame, _ in audio_frames]
             audios = resample_pcm_scipy(audio_slice)
+            print("333333", len(audios))
 
             resample_frames= []
             for _, audio_frame in enumerate(audios):
@@ -172,6 +173,7 @@ class LatentReal(BaseReal):
         while not quit_event.is_set():
             try:
                 res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.075)
+                print("8888888")
             except queue.Empty:
                 length = len(self.original_video_frames)
                 id = self.mirror_index(length, self.index) 
