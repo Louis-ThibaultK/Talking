@@ -14,11 +14,12 @@ class LatentsyncASR(BaseASR):
         self.audio_processor = audio_processor
         self.audio_buffer = []
 
-    def run_step(self):
+    async def run_step(self):
         ############################################## extract audio feature ##############################################
         start_time = time.time()
         for _ in range(self.batch_size*2):
-            audio_frame,type= self.get_audio_frame()
+            print("222222")
+            audio_frame,type= await self.get_audio_frame()
             self.frames.append(audio_frame)
             self.output_queue.put((audio_frame,type))
         
@@ -47,6 +48,7 @@ class LatentsyncASR(BaseASR):
                 streamlen = stream.shape[0]
                 idx=0
                 while streamlen >= self.chunk:
+                        print("1111111")
                         await self.put_audio_frame(stream[idx:idx+self.chunk])
                         streamlen -= self.chunk
                         idx += self.chunk 

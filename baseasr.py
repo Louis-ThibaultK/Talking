@@ -85,7 +85,7 @@ class BaseASR:
         for _ in range(self.stride_left_size):
             self.output_queue.get()
 
-    def run_step(self):
+    async def run_step(self):
         pass
 
     def get_next_feat(self,block,timeout):        
