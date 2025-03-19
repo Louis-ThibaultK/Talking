@@ -45,7 +45,7 @@ from aiortc import (
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # 默认 INFO 级别
-logging.getLogger("aiortc.rtcrtpsender").setLevel(logging.DEBUG)  # 打印 RTP 接收日志
+logging.getLogger("aiortc.rtcrtpsender").setLevel(logging.INFO)  # 打印 RTP 接收日志
 class AudioBuffer:
     """
     �~F�~N��~T��~H��~Z~D�~_��~Q�~U��~M��~]�~X�~H��~S�~F��~L��~@~B
