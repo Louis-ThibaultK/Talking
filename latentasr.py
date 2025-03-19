@@ -48,7 +48,7 @@ class LatentsyncASR(BaseASR):
                 streamlen = stream.shape[0]
                 idx=0
                 while streamlen >= self.chunk:
-                        asyncio.run_coroutine_threadsafe(self.put_audio_frame(self.put_audio_frame(stream[idx:idx+self.chunk]), self.loop))
+                        asyncio.run_coroutine_threadsafe(self.put_audio_frame(self.put_audio_frame(stream[idx:idx+self.chunk])), self.loop)
                         await self.put_audio_frame(stream[idx:idx+self.chunk])
                         streamlen -= self.chunk
                         idx += self.chunk 
