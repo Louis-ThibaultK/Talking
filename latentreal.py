@@ -215,8 +215,8 @@ class LatentReal(BaseReal):
             frame, type = audio_frame
             frame = frame.astype(np.int16)
             
-            new_frame = AudioFrame(format='s16', layout='stereo')
-            new_frame.planes[0].update(frame.tobytes())
+            new_frame = AudioFrame.from_ndarray(frame, format='s16', layout='stereo')
+            # new_frame.planes[0].update(frame.tobytes())
             new_frame.sample_rate=48000
             # if audio_track._queue.qsize()>10:
             #     time.sleep(0.1)
