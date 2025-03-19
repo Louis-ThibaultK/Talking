@@ -41,7 +41,7 @@ class LatentsyncASR(BaseASR):
     def put_frame(self,audio_stream, sample_rate):
         if audio_stream is not None and len(audio_stream)>0: 
             self.audio_buffer.append(audio_stream)
-            if len(self.audio_buffer) >= 16:
+            if len(self.audio_buffer) >= 15:
                 merged_audio = np.concatenate(self.audio_buffer, axis=0)
                 merged_audio = merged_audio.flatten()
                 stream = self.create_bytes_stream(merged_audio, sample_rate)
