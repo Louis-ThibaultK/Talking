@@ -25,23 +25,17 @@ import opuslib
 from io import BytesIO
 import soundfile as sf
 import resampy
-import asyncio
 
 
 class BaseASR:
     def __init__(self, opt, parent=None):
-        try:
-            self.loop = asyncio.get_running_loop()  # 获取当前运行的事件循环
-        except RuntimeError:
-            self.loop = asyncio.new_event_loop()  # 创建新的事件循环（如果没有）
-            asyncio.set_event_loop(self.loop)
         self.opt = opt
         self.parent = parent
 
         self.fps = opt.fps # 20 ms per frame
         self.sample_rate = 16000
         self.chunk = self.sample_rate // self.fps # 320 samples per chunk (20ms * 16000 / 1000)
-        self.queue = asyncio.Queue()
+        self.queue = Queue()
         self.output_queue = mp.Queue()
 
         self.batch_size = opt.batch_size
@@ -57,13 +51,12 @@ class BaseASR:
     def flush_talk(self):
         self.queue.queue.clear()
 
-    async def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
-        await self.queue.put(audio_chunk)
+    def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
+        self.queue.put(audio_chunk)
 
-    async def get_audio_frame(self):        
+    def get_audio_frame(self):        
         # try:
-        # frame = self.queue.get(block=True,timeout=0.02)
-        frame = await self.queue.get()
+        frame = self.queue.get(block=True)
         type = 0
             #print(f'[INFO] get frame {frame.shape}')
         # except queue.Empty:
@@ -90,7 +83,7 @@ class BaseASR:
         for _ in range(self.stride_left_size):
             self.output_queue.get()
 
-    async def run_step(self):
+    def run_step(self):
         pass
 
     def get_next_feat(self,block,timeout):        

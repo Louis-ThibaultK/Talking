@@ -244,15 +244,15 @@ class LatentReal(BaseReal):
                                        self.batch_size, self.asr.feat_queue, self.asr.output_queue, self.res_frame_queue, self.audio_frame_queue)).start() #mp.Process
 
         
-        self.asr.loop.run_until_complete(self.run_step(quit_event))
+        # self.asr.loop.run_until_complete(self.run_step(quit_event))
         # lp.run_forever()
 
         #_totalframe=0
-        # while not quit_event.is_set(): #todo
+        while not quit_event.is_set(): #todo
             # update texture every frame
             # audio stream thread...
             # t = time.perf_counter()
-            # await self.asr.run_step()
+            self.asr.run_step()
    
             # if video_track._queue.qsize()>=1.5*self.opt.batch_size:
             #     print('sleep qsize=',video_track._queue.qsize())

@@ -15,11 +15,11 @@ class LatentsyncASR(BaseASR):
         self.audio_processor = audio_processor
         self.audio_buffer = []
 
-    async def run_step(self):
+    def run_step(self):
         ############################################## extract audio feature ##############################################
         start_time = time.time()
         for _ in range(self.batch_size*2):
-            audio_frame,type= await self.get_audio_frame()
+            audio_frame,type= self.get_audio_frame()
             self.frames.append(audio_frame)
             self.output_queue.put((audio_frame,type))
         
@@ -38,7 +38,7 @@ class LatentsyncASR(BaseASR):
         # discard the old part to save memory
         self.frames = self.frames[:-(length)]
 
-    async def put_frame(self,audio_stream, sample_rate):
+    def put_frame(self,audio_stream, sample_rate):
         if audio_stream is not None and len(audio_stream)>0: 
             self.audio_buffer.append(audio_stream)
             if len(self.audio_buffer) >= 16:
@@ -48,8 +48,8 @@ class LatentsyncASR(BaseASR):
                 streamlen = stream.shape[0]
                 idx=0
                 while streamlen >= self.chunk:
-                        asyncio.run_coroutine_threadsafe(self.put_audio_frame(self.put_audio_frame(stream[idx:idx+self.chunk])), self.loop)
-                        await self.put_audio_frame(stream[idx:idx+self.chunk])
+                        # asyncio.run_coroutine_threadsafe(self.put_audio_frame(self.put_audio_frame(stream[idx:idx+self.chunk])), self.loop)
+                        self.put_audio_frame(stream[idx:idx+self.chunk])
                         streamlen -= self.chunk
                         idx += self.chunk 
 
