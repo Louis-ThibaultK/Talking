@@ -177,7 +177,7 @@ class PlayerStreamTrack(MediaStreamTrack):
             self._player = None
 
 
-async def player_worker_thread(
+def player_worker_thread(
     quit_event,
     loop,
     container,
