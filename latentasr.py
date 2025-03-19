@@ -18,7 +18,6 @@ class LatentsyncASR(BaseASR):
         ############################################## extract audio feature ##############################################
         start_time = time.time()
         for _ in range(self.batch_size*2):
-            print("111111")
             audio_frame,type= await self.get_audio_frame()
             self.frames.append(audio_frame)
             self.output_queue.put((audio_frame,type))
@@ -26,7 +25,7 @@ class LatentsyncASR(BaseASR):
         if len(self.frames) <= self.stride_left_size + self.stride_right_size:
             return
         length = len(self.frames)
-        
+        print("111111")
         inputs = np.concatenate(self.frames) # [N * chunk] 
         whisper_feature = self.audio_processor.audio2feat(inputs)
         

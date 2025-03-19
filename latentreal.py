@@ -207,6 +207,7 @@ class LatentReal(BaseReal):
         while not quit_event.is_set():
             try:
                 audio_frame = self.audio_frame_queue.get(block=True, timeout=0.02)
+                print("999999")
             except queue.Empty:
                 continue
             frame, type = audio_frame
