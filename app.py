@@ -89,8 +89,8 @@ async def offer(request):
     sessionid = 0
     print('sessionid=',sessionid)
     nerfreals[sessionid] = None
-    # nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
-    nerfreal = build_nerfreal(sessionid)
+    nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
+    # nerfreal = build_nerfreal(sessionid)
     nerfreals[sessionid] = nerfreal
     
     push_pc = RTCPeerConnection()
