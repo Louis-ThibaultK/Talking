@@ -89,8 +89,8 @@ async def offer(request):
     sessionid = 0
     print('sessionid=',sessionid)
     nerfreals[sessionid] = None
-    nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
-    # nerfreal = build_nerfreal(sessionid)
+    # nerfreal = await asyncio.get_event_loop().run_in_executor(None, build_nerfreal,sessionid)
+    nerfreal = build_nerfreal(sessionid)
     nerfreals[sessionid] = nerfreal
     
     push_pc = RTCPeerConnection()
@@ -468,13 +468,13 @@ if __name__ == '__main__':
         loop.run_until_complete(runner.setup())
         site = web.TCPSite(runner, '0.0.0.0', opt.listenport)
         loop.run_until_complete(site.start())
-        if opt.transport=='rtcpush':
-            for k in range(opt.max_session):
-                push_url = opt.push_url
-                pull_url = opt.pull_url
-                if k!=0:
-                    push_url = opt.push_url+str(k)
-                loop.run_until_complete(run(push_url,k))
+        # if opt.transport=='rtcpush':
+        #     for k in range(opt.max_session):
+        #         push_url = opt.push_url
+        #         pull_url = opt.pull_url
+        #         if k!=0:
+        #             push_url = opt.push_url+str(k)
+        #         loop.run_until_complete(run(push_url,k))
         loop.run_forever()   
     
     #Thread(target=run_server, args=(web.AppRunner(appasync),)).start()
