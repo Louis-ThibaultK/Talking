@@ -165,6 +165,7 @@ async def offer(request):
    
 
     push_answer = await push_pc.createAnswer()
+    push_answer = push_answer.replace('opus/48000/2', 'opus/16000/2')
     await push_pc.setLocalDescription(push_answer)
     print("push answer", push_answer)
 
