@@ -65,7 +65,7 @@ def resample_pcm_scipy(pcm_chunks, input_rate=16000, output_rate=48000, target_c
 
     stereo_data = np.stack([resampled_data, resampled_data], axis=0) 
     # Step 3: 重新分割成 50 个数据包，每个包长 960
-    resampled_chunks = np.split(stereo_data, target_chunks)
+    resampled_chunks = np.split(stereo_data, target_chunks, axis = 1)
     
 
     return resampled_chunks
