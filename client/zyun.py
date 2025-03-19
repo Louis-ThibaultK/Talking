@@ -313,7 +313,9 @@ class ZyunVideoService(FrameProcessor):
                 await self._push_pc.setLocalDescription(offer)
 
                 pull_offer = await self._pull_pc.createOffer()
-                pull_offer = pull_offer.replace('opus/48000/2', 'opus/16000/2')
+                sdp = pull_offer.sdp
+                sdp = sdp.replace('opus/48000/2', 'opus/16000/2')
+                pull_offer = RTCSessionDescription(sdp=sdp, type='offer')
                 await self._pull_pc.setLocalDescription(pull_offer)
 
                 # 等待 ICE 收集完成

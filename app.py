@@ -165,7 +165,9 @@ async def offer(request):
    
 
     push_answer = await push_pc.createAnswer()
-    push_answer = push_answer.replace('opus/48000/2', 'opus/16000/2')
+    sdp = push_answer.sdp
+    sdp = sdp.replace('opus/48000/2', 'opus/16000/2')
+    push_answer = RTCSessionDescription(sdp=sdp, type='answer')
     await push_pc.setLocalDescription(push_answer)
     print("push answer", push_answer)
 
