@@ -243,10 +243,9 @@ class LatentReal(BaseReal):
         Thread(target=self.inference, args=(self.pe, self.faces, self.original_video_frames, self.boxes, self.affine_matrices, self.render_event,
                                        self.batch_size, self.asr.feat_queue, self.asr.output_queue, self.res_frame_queue, self.audio_frame_queue)).start() #mp.Process
 
-        lp = asyncio.new_event_loop()
-        asyncio.set_event_loop(lp)
-        lp.run_until_complete(self.run_step(quit_event))
-        lp.run_forever()
+        
+        self.asr.loop.run_until_complete(self.run_step(quit_event))
+        # lp.run_forever()
 
         #_totalframe=0
         # while not quit_event.is_set(): #todo

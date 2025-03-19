@@ -30,6 +30,11 @@ import asyncio
 
 class BaseASR:
     def __init__(self, opt, parent=None):
+        try:
+            self.loop = asyncio.get_running_loop()  # 获取当前运行的事件循环
+        except RuntimeError:
+            self.loop = asyncio.new_event_loop()  # 创建新的事件循环（如果没有）
+            asyncio.set_event_loop(self.loop)
         self.opt = opt
         self.parent = parent
 
