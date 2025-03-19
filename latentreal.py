@@ -62,7 +62,6 @@ def resample_pcm_scipy(pcm_chunks, input_rate=16000, output_rate=48000, target_c
 
     # Step 2: 进行 16kHz → 48kHz 重采样
     resampled_data = resample(pcm_data, target_chunks * target_size)  # shape = (48000,)
-    print("heiheihei:", resampled_data)
 
     # Step 3: 重新分割成 50 个数据包，每个包长 960
     resampled_chunks = np.split(resampled_data, target_chunks)
@@ -172,7 +171,7 @@ class LatentReal(BaseReal):
         res_frame = np.zeros((512, 512, 3), dtype=np.uint8)
         while not quit_event.is_set():
             try:
-                res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.1)
+                res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.075)
             except queue.Empty:
                 length = len(self.original_video_frames)
                 id = self.mirror_index(length, self.index) 
