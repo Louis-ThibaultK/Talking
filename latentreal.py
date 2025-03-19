@@ -63,8 +63,10 @@ def resample_pcm_scipy(pcm_chunks, input_rate=16000, output_rate=48000, target_c
     # Step 2: 进行 16kHz → 48kHz 重采样
     resampled_data = resample(pcm_data, target_chunks * target_size)  # shape = (48000,)
 
+    stereo_data = np.stack([resampled_data, resampled_data], axis=1) 
     # Step 3: 重新分割成 50 个数据包，每个包长 960
-    resampled_chunks = np.split(resampled_data, target_chunks)
+    resampled_chunks = np.split(stereo_data, target_chunks)
+    
 
     return resampled_chunks
 
@@ -213,7 +215,7 @@ class LatentReal(BaseReal):
             frame, type = audio_frame
             frame = frame.astype(np.int16)
             
-            new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
+            new_frame = AudioFrame(format='s16', layout='stereo')
             new_frame.planes[0].update(frame.tobytes())
             new_frame.sample_rate=48000
             # if audio_track._queue.qsize()>10:
