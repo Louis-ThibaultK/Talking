@@ -275,8 +275,6 @@ class LipsyncPipeline(DiffusionPipeline):
             affine_matrices.append(affine_matrix)
 
         faces = torch.stack(faces)
-        print("开始保存")
-        write_video("./a.mp4", video_frames, 12)
         return faces, video_frames, boxes, affine_matrices
 
     def restore_video(self, faces, video_frames, boxes, affine_matrices):

@@ -37,6 +37,7 @@ from typing import Optional
 from latentasr import LatentsyncASR
 # from scipy.signal import resample
 import resampy
+from latentsync.latentsync.utils.util import write_video
 
 def load_model():
     # load model weights
@@ -88,6 +89,8 @@ class LatentReal(BaseReal):
 
         self.vae, self.unet, self.pe, self.audio_processor = model
         self.faces, self.original_video_frames, self.boxes, self.affine_matrices = avatar
+        print("开始保存")
+        write_video("./a.mp4", self.original_video_frames, 12)
 
         self.asr = LatentsyncASR(opt,self,self.audio_processor)
 
