@@ -264,6 +264,7 @@ class LipsyncPipeline(DiffusionPipeline):
 
     def affine_transform_video(self, video_path):
         video_frames = read_video(video_path, use_decord=False)
+        write_video("./a.mp4", video_frames, 12)
         faces = []
         boxes = []
         affine_matrices = []
