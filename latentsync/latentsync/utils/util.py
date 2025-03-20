@@ -52,7 +52,7 @@ def read_video(video_path: str, change_fps=True, use_decord=True):
             shutil.rmtree(temp_dir)
         os.makedirs(temp_dir, exist_ok=True)
         command = (
-            f"ffmpeg -loglevel error -y -nostdin -i {video_path} -r 12.5 -crf 18  -s 1280x720 -profile baseline {os.path.join(temp_dir, 'video.mp4')}"
+            f"ffmpeg -loglevel error -y -nostdin -i {video_path} -r 12.5 -crf 18  -s 1920x1080 -profile baseline {os.path.join(temp_dir, 'video.mp4')}"
         )
         subprocess.run(command, shell=True)
         target_video_path = os.path.join(temp_dir, "video.mp4")
@@ -62,8 +62,8 @@ def read_video(video_path: str, change_fps=True, use_decord=True):
     if use_decord:
         return read_video_decord(target_video_path)
     else:
-        # return read_video_cv2(target_video_path)
-        return read_video_ffmpeg(target_video_path)
+        return read_video_cv2(target_video_path)
+        # return read_video_ffmpeg(target_video_path)
 
 
 def read_video_decord(video_path: str):
@@ -111,6 +111,7 @@ def read_video_ffmpeg(video_path: str):
 def read_video_cv2(video_path: str):
     # Open the video file
     cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
+    cap.set(cv2.CAP_PROP_THREADS, 4)
 
     # Check if the video was opened successfully
     if not cap.isOpened():
@@ -128,7 +129,7 @@ def read_video_cv2(video_path: str):
             break
 
         # Convert BGR to RGB
-        # frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         frames.append(frame)
 
