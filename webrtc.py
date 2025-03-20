@@ -86,8 +86,8 @@ class PlayerStreamTrack(MediaStreamTrack):
             self.framecount = 0
             self.lasttime = time.perf_counter()
             self.totaltime = 0
-        else:
             self.buffer = AudioBuffer()
+            
     
     _start: float
     _timestamp: int
