@@ -73,7 +73,7 @@ def read_video_decord(video_path: str):
 
 def read_video_cv2(video_path: str):
     # Open the video file
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
 
     # Check if the video was opened successfully
     if not cap.isOpened():
