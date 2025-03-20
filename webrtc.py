@@ -150,7 +150,6 @@ class PlayerStreamTrack(MediaStreamTrack):
         #         frame = await self._queue.get()
         frame = await self._queue.get()
         if self.kind == 'audio':
-            print("heiheihei")
             data = frame.to_ndarray().tobytes()
             await self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
