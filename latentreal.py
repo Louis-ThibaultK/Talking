@@ -176,6 +176,7 @@ class LatentReal(BaseReal):
     def process_frames(self,quit_event,loop=None,audio_track=None,video_track=None):
         res_frame = np.zeros((512, 512, 3), dtype=np.uint8)
         while not quit_event.is_set():
+            audio_frames = None
             try:
                 res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.075)
                 print("8888888")
@@ -190,6 +191,8 @@ class LatentReal(BaseReal):
             new_frame = VideoFrame.from_ndarray(image, format="rgb24")
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
+            if audio_frames is not None:
+                time.sleep(0.075)
             #self.recordq_video.put(new_frame)  
 
             # if audio_frames[0][1]!=0 and audio_frames[1][1]!=0:
