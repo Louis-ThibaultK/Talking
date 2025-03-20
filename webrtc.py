@@ -28,6 +28,7 @@ from av.packet import Packet
 from av import AudioFrame
 import fractions
 import numpy as np
+from latentsync.latentsync.utils.util import write_video
 
 AUDIO_PTIME = 0.020  # 20ms audio packetization
 VIDEO_CLOCK_RATE = 90000
@@ -51,10 +52,11 @@ class AudioBuffer:
     �~F�~N��~T��~H��~Z~D�~_��~Q�~U��~M��~]�~X�~H��~S�~F��~L��~@~B
     """
     def __init__(self):
-        self.buffer = bytearray()
+        # self.buffer = bytearray()
         self.num_channels = None
         self.sample_rate = None
         self.sample_width = None
+        self.buffer = []
 
     async def write(self, data, num_channels, sample_rate, sample_width):
         if self.num_channels is None:
@@ -64,7 +66,8 @@ class AudioBuffer:
         if self.sample_width is None:
             self.sample_width = sample_width
 
-        self.buffer.extend(data)
+        # self.buffer.extend(data)
+        self.buffer.append(data)
 
     def get_data(self):
         return self.buffer
@@ -149,7 +152,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         #     else:
         #         frame = await self._queue.get()
         frame = await self._queue.get()
-        if self.kind == 'audio':
+        if self.kind == 'video':
             data = frame.to_ndarray().tobytes()
             await self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
@@ -251,9 +254,9 @@ class HumanPlayer:
             # self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, asyncio.get_event_loop(), self.__container, self.__audio, self.__video))
 
     def _stop(self, track: PlayerStreamTrack) -> None:
-        if track == self.__audio:
-            print("save push wav")
-            save_audio_to_file(self.__audio.buffer, "push.wav")
+        if track == self.__video:
+            print("save c.mp4")
+            write_video(self.__audio.buffer, "c.mp4")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:
