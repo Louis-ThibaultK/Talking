@@ -114,22 +114,22 @@ class LatentReal(BaseReal):
                 continue
             is_all_silence=True
             audio_frames = []
-            for _ in range(batch_size*2):
+            for _ in range(batch_size*4):
                 frame,type = audio_out_queue.get()
                 audio_frames.append((frame,type))
                 if type==0:
                     is_all_silence=False
 
-            audio_slice = [frame for frame, _ in audio_frames]
-            audios = resample_pcm_scipy(audio_slice)
-            print("333333", len(audios))
+            # audio_slice = [frame for frame, _ in audio_frames]
+            # audios = resample_pcm_scipy(audio_slice)
+            # print("333333", len(audios))
 
-            resample_frames= []
-            for _, audio_frame in enumerate(audios):
-                if is_all_silence:
-                    resample_frames.append((audio_frame, 1))
-                else:
-                    resample_frames.append((audio_frame, 0))
+            # resample_frames= []
+            # for _, audio_frame in enumerate(audios):
+            #     if is_all_silence:
+            #         resample_frames.append((audio_frame, 1))
+            #     else:
+            #         resample_frames.append((audio_frame, 0))
 
             t=time.perf_counter()
             split_faces = []
@@ -168,7 +168,7 @@ class LatentReal(BaseReal):
                 #self.__pushmedia(res_frame,loop,audio_track,video_track)
                 res_frame_queue.put((res_frame, audio_frames[i*2:i*2+2]))
 
-            for _, audio_frame in enumerate(resample_frames):
+            for _, audio_frame in enumerate(audio_frames):
                 audio_frame_queue.put(audio_frame)
                 
         print('latentreal inference processor stop')
@@ -221,7 +221,7 @@ class LatentReal(BaseReal):
             new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
             # new_frame.planes[0].update(frame.flatten().tobytes())
             new_frame.planes[0].update(frame.tobytes())
-            new_frame.sample_rate=9600
+            new_frame.sample_rate=16000
             # if audio_track._queue.qsize()>10:
             #     time.sleep(0.1)
             asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)

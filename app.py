@@ -375,8 +375,8 @@ if __name__ == '__main__':
     # audio FPS
     parser.add_argument('--fps', type=int, default=50)
     # sliding window left-middle-right length (unit: 40ms)
-    parser.add_argument('-l', type=int, default=7)
-    parser.add_argument('-r', type=int, default=8)
+    parser.add_argument('-l', type=int, default=16)
+    parser.add_argument('-r', type=int, default=16)
 
     parser.add_argument('--fullbody', action='store_true', help="fullbody human")
     parser.add_argument('--fullbody_img', type=str, default='data/fullbody/img')
@@ -388,7 +388,7 @@ if __name__ == '__main__':
     #musetalk opt
     parser.add_argument('--avatar_id', type=str, default='avator_1')
     parser.add_argument('--bbox_shift', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=15)
+    parser.add_argument('--batch_size', type=int, default=16)
 
     # parser.add_argument('--customvideo', action='store_true', help="custom video")
     # parser.add_argument('--customvideo_img', type=str, default='data/customvideo/img')

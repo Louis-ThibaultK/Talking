@@ -32,8 +32,8 @@ class Audio2Feature:
         selected_idx = []
 
         center_idx = int(vid_idx * 50 / fps)
-        left_idx = center_idx - audio_feat_length[0] * 2
-        right_idx = center_idx + (audio_feat_length[1] + 1) * 2
+        left_idx = center_idx - audio_feat_length[0] * 4
+        right_idx = center_idx + (audio_feat_length[1] + 1) * 4
 
         for idx in range(left_idx, right_idx):
             idx = max(0, idx)
@@ -92,7 +92,7 @@ class Audio2Feature:
             )
             # print(f"i:{i},selected_idx {selected_idx}")
             whisper_chunks.append(selected_feature)
-            i += 1
+            i += 2
             if start_idx >= len(feature_array):
                 break
 
