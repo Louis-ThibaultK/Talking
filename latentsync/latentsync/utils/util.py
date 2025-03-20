@@ -32,6 +32,7 @@ import cv2
 from decord import AudioReader, VideoReader
 import shutil
 import subprocess
+import ffmpeg
 
 
 # Machine epsilon for a float32 (single precision)
@@ -61,7 +62,8 @@ def read_video(video_path: str, change_fps=True, use_decord=True):
     if use_decord:
         return read_video_decord(target_video_path)
     else:
-        return read_video_cv2(target_video_path)
+        # return read_video_cv2(target_video_path)
+        return read_video_ffmpeg(target_video_path)
 
 
 def read_video_decord(video_path: str):
@@ -70,6 +72,41 @@ def read_video_decord(video_path: str):
     vr.seek(0)
     return video_frames
 
+def read_video_ffmpeg(video_path: str):
+    frames = []
+
+    # Get the video stream using ffmpeg
+    try:
+        probe = ffmpeg.probe(video_path, v='error', select_streams='v:0', show_entries='stream=width,height,r_frame_rate')
+        video_stream = probe['streams'][0]
+        fps = eval(video_stream['r_frame_rate'])  # Calculate fps
+        print(f"Video FPS: {fps}")
+        
+        # Use ffmpeg to read the video stream and convert each frame into a numpy array
+        out, _ = (
+            ffmpeg
+            .input(video_path)
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24')
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+
+        # Get the width and height from the video stream probe
+        width = int(video_stream['width'])
+        height = int(video_stream['height'])
+        
+        # Convert the output to numpy array (raw video bytes -> frames)
+        num_frames = len(out) // (width * height * 3)  # Each pixel has 3 bytes (RGB)
+        
+        for i in range(num_frames):
+            frame = np.frombuffer(out[i*width*height*3:(i+1)*width*height*3], np.uint8)
+            frame = frame.reshape((height, width, 3))
+            frames.append(frame)
+
+    except ffmpeg.Error as e:
+        print(f"Error processing video: {e.stderr.decode()}")
+        return np.array([])
+
+    return np.array(frames)
 
 def read_video_cv2(video_path: str):
     # Open the video file
