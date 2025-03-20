@@ -63,8 +63,8 @@ def read_video(video_path: str, change_fps=True, use_decord=True):
     if use_decord:
         return read_video_decord(target_video_path)
     else:
-        # return read_video_cv2(target_video_path)
-        return read_video_ffmpeg(target_video_path)
+        return read_video_cv2(target_video_path)
+        # return read_video_ffmpeg(target_video_path)
 
 
 def read_video_decord(video_path: str):
@@ -121,7 +121,7 @@ def read_video_cv2(video_path: str):
         return np.array([])
 
     frames = []
-
+    print("开始解码")
     while True:
         # Read a frame
         ret, frame = cap.read()
@@ -137,6 +137,7 @@ def read_video_cv2(video_path: str):
 
     # Release the video capture object
     cap.release()
+    print("解码完成")
 
     return np.array(frames)
 
