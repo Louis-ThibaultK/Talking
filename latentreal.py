@@ -112,24 +112,10 @@ class LatentReal(BaseReal):
                 whisper_chunks = audio_feat_queue.get(block=True, timeout=0.5)
             except queue.Empty:
                 continue
-            is_all_silence=True
             audio_frames = []
             for _ in range(batch_size*4):
                 frame,type = audio_out_queue.get()
                 audio_frames.append((frame,type))
-                if type==0:
-                    is_all_silence=False
-
-            # audio_slice = [frame for frame, _ in audio_frames]
-            # audios = resample_pcm_scipy(audio_slice)
-            # print("333333", len(audios))
-
-            # resample_frames= []
-            # for _, audio_frame in enumerate(audios):
-            #     if is_all_silence:
-            #         resample_frames.append((audio_frame, 1))
-            #     else:
-            #         resample_frames.append((audio_frame, 0))
 
             t=time.perf_counter()
             split_faces = []
@@ -145,11 +131,6 @@ class LatentReal(BaseReal):
             
             split_faces = torch.stack(split_faces) 
             split_video_frames = np.array(split_video_frames)
-            # if is_all_silence:
-            #     for i in range(batch_size):
-            #         res_frame_queue.put((split_video_frames[i], audio_frames[i*2:i*2+2]))
-            #         index = index + 1
-            #     return
             start_time = time.perf_counter()
             videos = pipeline.inference(whisper_chunks, split_faces, split_video_frames, split_boxes, split_affine_matrices, num_frames=batch_size)
             end_time = time.perf_counter()
@@ -166,7 +147,7 @@ class LatentReal(BaseReal):
 
             for i,res_frame in enumerate(videos):
                 #self.__pushmedia(res_frame,loop,audio_track,video_track)
-                res_frame_queue.put((res_frame, audio_frames[i*2:i*2+2]))
+                res_frame_queue.put((res_frame, audio_frames[i*4:i*4+4]))
 
             for _, audio_frame in enumerate(audio_frames):
                 audio_frame_queue.put(audio_frame)
@@ -193,23 +174,21 @@ class LatentReal(BaseReal):
             self.record_video_data(image)
             if audio_frames is not None:
                 time.sleep(0.075)
-            #self.recordq_video.put(new_frame)  
+                continue
+            # self.record_video.put(new_frame)  
 
-            # if audio_frames[0][1]!=0 and audio_frames[1][1]!=0:
-            #     continue 
-
-            # for audio_frame in audio_frames:
-            #     frame, type = audio_frame
-            #     frame = frame.astype(np.int16)
+            for audio_frame in audio_frames:
+                frame, type = audio_frame
+                frame = frame.astype(np.int16)
                 
-            #     new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
-            #     new_frame.planes[0].update(frame.tobytes())
-            #     new_frame.sample_rate=16000
-            #     # if audio_track._queue.qsize()>10:
-            #     #     time.sleep(0.1)
-            #     asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
-            #     self.record_audio_data(frame)
-            #     #self.recordq_audio.put(new_frame)
+                new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
+                new_frame.planes[0].update(frame.tobytes())
+                new_frame.sample_rate=16000
+                # if audio_track._queue.qsize()>10:
+                #     time.sleep(0.1)
+                asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
+                self.record_audio_data(frame)
+                #self.recordq_audio.put(new_frame)
         print('latentreal process_frames thread stop') 
 
     def process_audio_frame(self, quit_event, loop = None, audio_track = None):
@@ -247,7 +226,7 @@ class LatentReal(BaseReal):
         self.init_customindex()
         process_thread = Thread(target=self.process_frames, args=(quit_event,loop,audio_track,video_track))
         process_thread.start()
-        Thread(target=self.process_audio_frame,  args=(quit_event,loop,audio_track)).start()
+        # Thread(target=self.process_audio_frame,  args=(quit_event,loop,audio_track)).start()
 
         self.render_event.set() #start infer process render
         Thread(target=self.inference, args=(self.pe, self.faces, self.original_video_frames, self.boxes, self.affine_matrices, self.render_event,
