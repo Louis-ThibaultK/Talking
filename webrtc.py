@@ -257,6 +257,7 @@ class HumanPlayer:
         if track == self.__video:
             print("save c.mp4")
             write_video(self.__audio.buffer, "c.mp4")
+            print("保存成功")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:
