@@ -87,9 +87,10 @@ def read_video_ffmpeg(video_path: str):
         out, _ = (
             ffmpeg
             .input(video_path)
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24', threads = 8)
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24', threads = 4)
             .run(capture_stdout=True, capture_stderr=True)
         )
+        print("解码完成")
 
         # Get the width and height from the video stream probe
         width = int(video_stream['width'])
