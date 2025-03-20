@@ -149,8 +149,8 @@ class LatentReal(BaseReal):
                 #self.__pushmedia(res_frame,loop,audio_track,video_track)
                 res_frame_queue.put((res_frame, audio_frames[i*4:i*4+4]))
 
-            for _, audio_frame in enumerate(audio_frames):
-                audio_frame_queue.put(audio_frame)
+            # for _, audio_frame in enumerate(audio_frames):
+            #     audio_frame_queue.put(audio_frame)
                 
         print('latentreal inference processor stop')
 
@@ -173,22 +173,23 @@ class LatentReal(BaseReal):
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             if audio_frames is not None:
+                for audio_frame in audio_frames:
+                    frame, type = audio_frame
+                    frame = frame.astype(np.int16)
+                    
+                    new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
+                    new_frame.planes[0].update(frame.tobytes())
+                    new_frame.sample_rate=16000
+                    # if audio_track._queue.qsize()>10:
+                    #     time.sleep(0.1)
+                    asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
+                    self.record_audio_data(frame)
+                    #self.recordq_audio.put(new_frame)
                 time.sleep(0.075)
-                continue
+                
             # self.record_video.put(new_frame)  
 
-            for audio_frame in audio_frames:
-                frame, type = audio_frame
-                frame = frame.astype(np.int16)
-                
-                new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
-                new_frame.planes[0].update(frame.tobytes())
-                new_frame.sample_rate=16000
-                # if audio_track._queue.qsize()>10:
-                #     time.sleep(0.1)
-                asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
-                self.record_audio_data(frame)
-                #self.recordq_audio.put(new_frame)
+            
         print('latentreal process_frames thread stop') 
 
     def process_audio_frame(self, quit_event, loop = None, audio_track = None):
