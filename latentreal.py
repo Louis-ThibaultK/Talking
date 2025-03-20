@@ -173,6 +173,7 @@ class LatentReal(BaseReal):
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             if audio_frames is not None:
+                time.sleep(0.075)
                 for audio_frame in audio_frames:
                     frame, type = audio_frame
                     frame = frame.astype(np.int16)
@@ -185,7 +186,7 @@ class LatentReal(BaseReal):
                     asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
                     self.record_audio_data(frame)
                     #self.recordq_audio.put(new_frame)
-                time.sleep(0.075)
+                # time.sleep(0.075)
                 
             # self.record_video.put(new_frame)  
 
