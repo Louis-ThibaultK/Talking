@@ -62,8 +62,8 @@ def read_video(video_path: str, change_fps=True, use_decord=True):
     if use_decord:
         return read_video_decord(target_video_path)
     else:
-        return read_video_cv2(target_video_path)
-        # return read_video_ffmpeg(target_video_path)
+        # return read_video_cv2(target_video_path)
+        return read_video_ffmpeg(target_video_path)
 
 
 def read_video_decord(video_path: str):
@@ -86,7 +86,7 @@ def read_video_ffmpeg(video_path: str):
         out, _ = (
             ffmpeg
             .input(video_path)
-            .output('pipe:', format='rawvideo', pix_fmt='rgb24')
+            .output('pipe:', format='rawvideo', pix_fmt='rgb24', threads = 8)
             .run(capture_stdout=True, capture_stderr=True)
         )
 
@@ -111,7 +111,7 @@ def read_video_ffmpeg(video_path: str):
 def read_video_cv2(video_path: str):
     # Open the video file
     cap = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
-    cap.set(cv2.CAP_PROP_THREADS, 4)
+    # cap.set(cv2.CAP_PROP_THREADS, 4)
 
     # Check if the video was opened successfully
     if not cap.isOpened():
