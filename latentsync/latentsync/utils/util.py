@@ -119,7 +119,13 @@ def read_video_cv2(video_path: str):
     if not cap.isOpened():
         print("Error: Could not open video.")
         return np.array([])
-
+    
+    # 获取视频的宽、高、帧率
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(cap.get(cv2.CAP_PROP_FPS)) if fps is None else fps
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 或 'XVID'
+    out = cv2.VideoWriter("./", fourcc, fps, (width, height))
     frames = []
     print("开始解码")
     while True:
@@ -134,9 +140,11 @@ def read_video_cv2(video_path: str):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         frames.append(frame_rgb)
+        out.write(frame)
 
     # Release the video capture object
     cap.release()
+    out.release()
     print("解码完成")
 
     return np.array(frames)
