@@ -180,6 +180,7 @@ class LatentReal(BaseReal):
                 res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.075)
                 print("8888888")
             except queue.Empty:
+                print("7777777")
                 length = len(self.original_video_frames)
                 id = self.mirror_index(length, self.index) 
                 res_frame = self.original_video_frames[id]
