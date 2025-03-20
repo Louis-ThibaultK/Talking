@@ -123,9 +123,9 @@ def read_video_cv2(video_path: str):
     # 获取视频的宽、高、帧率
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = int(cap.get(cv2.CAP_PROP_FPS)) if fps is None else fps
+    # fps = int(cap.get(cv2.CAP_PROP_FPS)) if fps is None else fps
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 或 'XVID'
-    out = cv2.VideoWriter("./", fourcc, fps, (width, height))
+    out = cv2.VideoWriter("./", fourcc, 12.5, (width, height))
     frames = []
     print("开始解码")
     while True:
