@@ -160,16 +160,14 @@ class LatentReal(BaseReal):
             audio_frames = None
             try:
                 res_frame,audio_frames = self.res_frame_queue.get(block=True, timeout=0.075)
-                print("8888888")
             except queue.Empty:
-                print("7777777")
                 length = len(self.original_video_frames)
                 id = self.mirror_index(length, self.index) 
                 res_frame = self.original_video_frames[id]
                 self.index += 1
 
             image = res_frame #(outputs['image'] * 255).astype(np.uint8)
-            new_frame = VideoFrame.from_ndarray(image, format="rgb24")
+            new_frame = VideoFrame.from_ndarray(image, format="bgr24")
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
             if audio_frames is not None:
@@ -197,7 +195,6 @@ class LatentReal(BaseReal):
         while not quit_event.is_set():
             try:
                 audio_frame = self.audio_frame_queue.get(block=True, timeout=0.02)
-                print("999999")
             except queue.Empty:
                 continue
             frame, type = audio_frame
