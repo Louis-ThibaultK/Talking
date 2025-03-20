@@ -131,7 +131,7 @@ def read_video_cv2(video_path: str):
         # Convert BGR to RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        frames.append(frame)
+        frames.append(frame_rgb)
 
     # Release the video capture object
     cap.release()
