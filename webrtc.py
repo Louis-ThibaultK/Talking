@@ -256,7 +256,7 @@ class HumanPlayer:
     def _stop(self, track: PlayerStreamTrack) -> None:
         if track == self.__video:
             print("save c.mp4")
-            write_video(np.array(self.__audio.buffer.get_data), "c.mp4", 12)
+            write_video("c.mp4", np.array(self.__audio.buffer.get_data), 12)
             print("保存成功")
         self.__started.discard(track)
 
