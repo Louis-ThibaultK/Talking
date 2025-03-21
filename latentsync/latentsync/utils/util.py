@@ -159,6 +159,7 @@ def write_video(video_output_path: str, video_frames: np.ndarray, fps: int):
     out = cv2.VideoWriter(video_output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
     # out = cv2.VideoWriter(video_output_path, cv2.VideoWriter_fourcc(*"vp09"), fps, (width, height))
     for frame in video_frames:
+        print("hahahaha")
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         out.write(frame)
     out.release()
