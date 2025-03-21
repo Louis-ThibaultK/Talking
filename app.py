@@ -152,14 +152,6 @@ async def offer(request):
     #推流
     audio_transceiver = push_pc.addTransceiver(player.audio, direction="sendonly")
     video_transceiver = push_pc.addTransceiver(player.video, direction="sendonly")
-    # video_sender = video_transceiver.sender
-    # parameters = video_sender.getParameters()
-    # # 设置更高的比特率（单位 bps）
-    # for encoding in parameters.encodings:
-    #     encoding.max_bitrate = 5_000_000  # 5 Mbps
-
-    # # 应用新的编码参数
-    # video_sender.setParameters(parameters)
 
     capabilities = RTCRtpSender.getCapabilities("video")
     # preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))

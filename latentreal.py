@@ -165,8 +165,6 @@ class LatentReal(BaseReal):
                 id = self.mirror_index(length, self.index) 
                 res_frame = self.original_video_frames[id]
                 self.index += 1
-                # if self.original_video_frames is not None:
-                #     print("heihei", type(self.original_video_frames), type(res_frame))
             
             image = res_frame #(outputs['image'] * 255).astype(np.uint8)
             new_frame = VideoFrame.from_ndarray(image, format="rgb24")
