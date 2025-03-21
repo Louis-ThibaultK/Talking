@@ -169,6 +169,7 @@ class LatentReal(BaseReal):
                 #     print("heihei", type(self.original_video_frames), type(res_frame))
             
             image = res_frame #(outputs['image'] * 255).astype(np.uint8)
+            print("heihei", image.shape, image)
             new_frame = VideoFrame.from_ndarray(image, format="rgb24")
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
@@ -184,7 +185,7 @@ class LatentReal(BaseReal):
                     # if audio_track._queue.qsize()>10:
                     #     time.sleep(0.1)
                     asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
-                    self.record_audio_data(frame)
+                    # self.record_audio_data(frame)
                     #self.recordq_audio.put(new_frame)
                 # time.sleep(0.075)
                 

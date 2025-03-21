@@ -86,7 +86,6 @@ class PlayerStreamTrack(MediaStreamTrack):
             self.framecount = 0
             self.lasttime = time.perf_counter()
             self.totaltime = 0
-            self.buffer = AudioBuffer()
             
     
     _start: float
@@ -135,26 +134,7 @@ class PlayerStreamTrack(MediaStreamTrack):
     async def recv(self) -> Union[Frame, Packet]:
         # frame = self.frames[self.counter % 30]            
         self._player._start(self)
-        # if self.kind == 'video':
-        #     frame = await self._queue.get()
-        # else: #audio
-        #     if hasattr(self, "_timestamp"):
-        #         wait = self._start + self._timestamp / SAMPLE_RATE + AUDIO_PTIME - time.time()
-        #         if wait>0:
-        #             await asyncio.sleep(wait)
-        #         if self._queue.qsize()<1:
-        #             #frame = AudioFrame(format='s16', layout='mono', samples=320)
-        #             audio = np.zeros((1, 320), dtype=np.int16)
-        #             frame = AudioFrame.from_ndarray(audio, layout='mono', format='s16')
-        #             frame.sample_rate=16000
-        #         else:
-        #             frame = await self._queue.get()
-        #     else:
-        #         frame = await self._queue.get()
         frame = await self._queue.get()
-        if self.kind == 'video':
-            data = frame.to_ndarray()
-            await self.buffer.write(data, 1, 16000, 2)
         pts, time_base = await self.next_timestamp()
 
         frame.pts = pts
@@ -254,10 +234,6 @@ class HumanPlayer:
             # self.__thread = asyncio.create_task(player_worker_thread(self.__thread_quit, asyncio.get_event_loop(), self.__container, self.__audio, self.__video))
 
     def _stop(self, track: PlayerStreamTrack) -> None:
-        if track == self.__video:
-            print("save c.mp4")
-            write_video("c.mp4", np.array(self.__audio.buffer.get_data), 12)
-            print("保存成功")
         self.__started.discard(track)
 
         if not self.__started and self.__thread is not None:
