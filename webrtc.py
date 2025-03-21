@@ -136,7 +136,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         self._player._start(self)
         frame = await self._queue.get()
         pts, time_base = await self.next_timestamp()
-
+        print(f"Received frame: {frame.width}x{frame.height}, format: {frame.format}")
         frame.pts = pts
         frame.time_base = time_base
         if frame is None:

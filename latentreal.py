@@ -169,7 +169,6 @@ class LatentReal(BaseReal):
                 #     print("heihei", type(self.original_video_frames), type(res_frame))
             
             image = res_frame #(outputs['image'] * 255).astype(np.uint8)
-            print("heihei", image.shape, image)
             new_frame = VideoFrame.from_ndarray(image, format="rgb24")
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop)
             self.record_video_data(image)
