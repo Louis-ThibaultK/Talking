@@ -151,7 +151,7 @@ async def offer(request):
     pull_pc.addTransceiver("audio", direction="recvonly")
     #推流
     audio_transceiver = push_pc.addTransceiver(player.audio, direction="sendonly")
-    video_transceiver = push_pc.addTransceiver(player.video, direction="sendonly")
+    video_transceiver = push_pc.addTransceiver(player.video, direction="sendonly", sendEncodings=[{"maxBitrate": 5_000_000}])
 
     capabilities = RTCRtpSender.getCapabilities("video")
     preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))

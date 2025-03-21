@@ -136,13 +136,14 @@ class PlayerStreamTrack(MediaStreamTrack):
         self._player._start(self)
         frame = await self._queue.get()
         pts, time_base = await self.next_timestamp()
-        print(f"Received frame: {frame.width}x{frame.height}, format: {frame.format}")
+        
         frame.pts = pts
         frame.time_base = time_base
         if frame is None:
             self.stop()
             raise Exception
         if self.kind == 'video':
+            print(f"Received frame: {frame.width}x{frame.height}, format: {frame.format}")
             self.totaltime += (time.perf_counter() - self.lasttime)
             self.framecount += 1
             self.lasttime = time.perf_counter()
