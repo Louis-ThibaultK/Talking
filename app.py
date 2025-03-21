@@ -163,7 +163,7 @@ async def offer(request):
 
     capabilities = RTCRtpSender.getCapabilities("video")
     # preferences = list(filter(lambda x: x.name == "H264", capabilities.codecs))
-    preferences += list(filter(lambda x: x.name == "VP8", capabilities.codecs))
+    preferences = list(filter(lambda x: x.name == "VP8", capabilities.codecs))
     preferences += list(filter(lambda x: x.name == "rtx", capabilities.codecs))
     # for codec in preferences:
     #     codec.parameters["x-google-start-bitrate"] = "10000"  # 设置初始比特率
